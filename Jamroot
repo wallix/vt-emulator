@@ -19,6 +19,41 @@ project vt_emulator
    : default-build release
 ;
 
+
+import os ;
+
+rule setvar ( env : default * )
+{
+    if [ os.environ $(env) ]
+    {
+        return [ os.environ $(env) ] ;
+    }
+    else
+    {
+        return $(default) ;
+    }
+}
+
+constant LIB_PREFIX : [ setvar LIB_PREFIX : build/lib ] ;
+constant INCLUDE_PREFIX : [ setvar INCLUDE_PREFIX : build/include/wallix/vt-emulator ] ;
+
+explicit install install-libs install-headers ;
+alias install : install-libs install-headers ;
+
+alias libs : libwallix_term ;
+
+install install-libs
+    : libs
+    :
+    : <install-type>LIB <location>$(LIB_PREFIX)
+    ;
+
+install install-headers
+    : [ glob $(RVT_LIB_SRC)/*.hpp ]
+    :
+    : <location>$(INCLUDE_PREFIX)
+    ;
+
 lib libboost_unit_test : : <name>boost_unit_test_framework <link>shared ;
 
 constant TEST_DEPENDENCIES :
@@ -34,7 +69,8 @@ obj text_rendering : $(RVT_SRC)/text_rendering.cpp ;
 
 alias libemu : emulator screen ;
 
-lib libterm : text_rendering libemu $(RVT_LIB_SRC)/terminal_emulator.cpp : <link>shared ;
+lib libwallix_term : text_rendering libemu $(RVT_LIB_SRC)/terminal_emulator.cpp : <cxxflags>-fPIC ;
+alias libterm : libwallix_term ;
 
 ## Tools
 ## @{

@@ -1,0 +1,10 @@
+LIB_PREFIX=/usr/local/lib
+INCLUDE_PREFIX=/usr/local/include/wallix
+ARCH=any
+BUILD_DEPENDS=debhelper (>=7), dpkg-dev, build-essential, g++ (>=4.9), libboost-dev
+DEPENDS=
+PROJECT_NAME=vt-emulator
+MAINTAINER=WAB Dev Team <wab@wallix.com>
+VCS_GIT=https://github.com/wallix/vt-emulator.git
+VCS_BROWSER=https://github.com/wallix/vt-emulator
+HOMEPAGE=https://github.com/wallix/vt-emulator

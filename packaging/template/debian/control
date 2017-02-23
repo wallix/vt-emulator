@@ -1,0 +1,17 @@
+Source: %PROJECT_NAME%
+Section: development
+Priority: optional
+Maintainer: %MAINTAINER%
+Build-Depends: %BUILD_DEPENDS%
+Standards-Version: %VERSION%
+Vcs-Git: %VCS_GIT%
+Vcs-browser: %VCS_BROWSER%
+Homepage: %HOMEPAGE%
+
+Package: %PROJECT_NAME%
+Architecture: %ARCH%
+Section: development
+Homepage: %HOMEPAGE%
+Depends: %DEPENDS%
+Description: Parse command-line options library (C++11).
+    www: %HOMEPAGE%

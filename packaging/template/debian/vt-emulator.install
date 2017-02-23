@@ -1,0 +1,5 @@
+%LIB_PREFIX%/libwallix_term.a
+%LIB_PREFIX%/libwallix_term.so
+%LIB_PREFIX%/libwallix_term_d.a
+%LIB_PREFIX%/libwallix_term_d.so
+%INCLUDE_PREFIX%/terminal_emulator.hpp

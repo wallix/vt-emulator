@@ -14,3 +14,12 @@ ls -R
 # Build
 
 $ `bjam` or `bjam toolset=compiler` (see http://www.boost.org/build/doc/html/bbv2/overview/configuration.html)
+
+
+# Package
+
+With Wallix packager (https://github.com/wallix/packager).
+
+`$ $PACKAGER_PROJECT/packager.py --version 1.0 --no-entry-changelog`
+
+`$ dpkg-buildpackage -I.git -Ibin -uc -us`
