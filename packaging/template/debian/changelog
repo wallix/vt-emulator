@@ -1,7 +1,7 @@
-vt-emulator (1.0) unstable; urgency=low
+vt-emulator (1.0%TARGET_NAME%) %PKG_DISTRIBUTION%; urgency=low
 
   * libwallix_term and demo
 
 
- -- WAB Dev Team <wab@wallix.com>  Thu, 23 Feb 2017 14:59:51 +0200
+ -- WAB Dev Team <wab@wallix.com>  Thu, 23 Feb 2017 16:35:15 +0200
 
