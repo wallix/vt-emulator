@@ -1,4 +1,3 @@
-#include <iostream>
 /*
 *   This program is free software; you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -26,8 +25,11 @@
 #include "rvt/utf8_decoder.hpp"
 #include "rvt/text_rendering.hpp"
 
+#include <new>
+
 #include <cerrno>
 #include <cstdlib>
+#include <cstring>
 
 #include <unistd.h> // unlink
 #include <stdio.h> // rename
@@ -35,16 +37,22 @@
 #include <sys/stat.h> // fchmod
 
 
-struct TerminalEmulator
+namespace rvt_lib
 {
-    rvt::VtEmulator emulator;
-    rvt::Utf8Decoder decoder;
+    struct TerminalEmulator
+    {
+        rvt::VtEmulator emulator;
+        rvt::Utf8Decoder decoder;
 
-    TerminalEmulator(int lines, int columns)
-    : emulator(lines, columns)
-    {}
-};
+        TerminalEmulator(int lines, int columns)
+        : emulator(lines, columns)
+        {}
+    };
+}
 
+
+using rvt_lib::TerminalEmulator;
+using rvt_lib::OutputFormat;
 
 static ssize_t write_all(int fd, const void * data, size_t len) noexcept
 {
@@ -64,14 +72,22 @@ static ssize_t write_all(int fd, const void * data, size_t len) noexcept
     return total_sent;
 }
 
-static int build_json_string(TerminalEmulator & emu, std::string & out) noexcept
+static int build_format_string(TerminalEmulator & emu, OutputFormat format, std::string & out) noexcept
 {
     try {
-        out = rvt::json_rendering(
-            emu.emulator.getWindowTitle(),
-            emu.emulator.getCurrentScreen(),
-            rvt::color_table
-        );
+        #define call_rendering(Format)           \
+            case OutputFormat::Format:           \
+            out = rvt::Format##_rendering(       \
+                emu.emulator.getWindowTitle(),   \
+                emu.emulator.getCurrentScreen(), \
+                rvt::color_table                 \
+            ); break
+        switch (format) {
+            call_rendering(json);
+            call_rendering(ansi);
+            default: return -2;
+        }
+        #undef call_rendering
     }
     catch (...) {
         return -1;
@@ -83,15 +99,20 @@ static int build_json_string(TerminalEmulator & emu, std::string & out) noexcept
 
 extern "C" {
 
+char const * terminal_emulator_version() noexcept
+{
+    return "0.1.0";
+}
+
 #define return_if(x) do { if (x) { return -1; } } while (0)
 #define return_errno_if(x) do { if (x) { return errno ? errno : -1; } } while (0)
 
 TerminalEmulator * terminal_emulator_init(int lines, int columns)
 {
-    return new TerminalEmulator(lines, columns);
+    return new(std::nothrow) TerminalEmulator(lines, columns);
 }
 
-int terminal_emulator_deinit(TerminalEmulator * emu)
+int terminal_emulator_deinit(TerminalEmulator * emu) noexcept
 {
     delete emu;
     return 0;
@@ -162,12 +183,12 @@ int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns)
     return 0;
 }
 
-int terminal_emulator_write(TerminalEmulator * emu, char const * filename, int mode)
+int terminal_emulator_write(TerminalEmulator * emu, OutputFormat format, char const * filename, int mode)
 {
     return_if(!emu);
 
     std::string out;
-    return_errno_if(build_json_string(*emu, out));
+    return_errno_if(build_format_string(*emu, format, out));
 
     int fd = ::open(filename, O_WRONLY | O_CREAT, mode);
     return_errno_if(fd == -1);
@@ -186,6 +207,7 @@ int terminal_emulator_write(TerminalEmulator * emu, char const * filename, int m
 
 int terminal_emulator_write_integrity(
     TerminalEmulator * emu,
+    OutputFormat format,
     char const * filename,
     char const * prefix_tmp_filename,
     int mode
@@ -193,7 +215,7 @@ int terminal_emulator_write_integrity(
     return_if(!emu);
 
     std::string out;
-    return_errno_if(build_json_string(*emu, out));
+    return_errno_if(build_format_string(*emu, format, out));
 
     char tmpfilename[4096];
     tmpfilename[0] = 0;

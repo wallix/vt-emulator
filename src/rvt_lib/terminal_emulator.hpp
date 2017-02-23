@@ -22,23 +22,36 @@
 
 #include "cxx/keyword.hpp"
 
-class TerminalEmulator;
+namespace rvt_lib
+{
+    class TerminalEmulator;
+
+    enum class OutputFormat : int {
+        json,
+        ansi
+    };
+}
 
 extern "C" {
 
-REDEMPTION_LIB_EXPORT TerminalEmulator * terminal_emulator_init(int lines, int columns);
-REDEMPTION_LIB_EXPORT int terminal_emulator_deinit(TerminalEmulator *);
+REDEMPTION_LIB_EXPORT char const * terminal_emulator_version() noexcept;
+REDEMPTION_LIB_EXPORT rvt_lib::TerminalEmulator * terminal_emulator_init(int lines, int columns);
+REDEMPTION_LIB_EXPORT int terminal_emulator_deinit(rvt_lib::TerminalEmulator *) noexcept;
 
-REDEMPTION_LIB_EXPORT int terminal_emulator_finish(TerminalEmulator *);
+REDEMPTION_LIB_EXPORT int terminal_emulator_finish(rvt_lib::TerminalEmulator *);
 
-REDEMPTION_LIB_EXPORT int terminal_emulator_set_title(TerminalEmulator *, char const * title);
-REDEMPTION_LIB_EXPORT int terminal_emulator_set_log_function(TerminalEmulator *, void(* log_func)(char const *));
-REDEMPTION_LIB_EXPORT int terminal_emulator_set_log_function_ctx(TerminalEmulator *, void(* log_func)(void *, char const *), void * ctx);
+REDEMPTION_LIB_EXPORT int terminal_emulator_set_title(rvt_lib::TerminalEmulator *, char const * title);
+REDEMPTION_LIB_EXPORT int terminal_emulator_set_log_function(
+    rvt_lib::TerminalEmulator *, void(* log_func)(char const *));
+REDEMPTION_LIB_EXPORT int terminal_emulator_set_log_function_ctx(
+    rvt_lib::TerminalEmulator *, void(* log_func)(void *, char const *), void * ctx);
 
-REDEMPTION_LIB_EXPORT int terminal_emulator_feed(TerminalEmulator *, char const * s, int n);
-REDEMPTION_LIB_EXPORT int terminal_emulator_resize(TerminalEmulator *, int lines, int columns);
-REDEMPTION_LIB_EXPORT int terminal_emulator_write(TerminalEmulator *, char const * filename, int mode);
-REDEMPTION_LIB_EXPORT int terminal_emulator_write_integrity(TerminalEmulator *,
+REDEMPTION_LIB_EXPORT int terminal_emulator_feed(rvt_lib::TerminalEmulator *, char const * s, int n);
+REDEMPTION_LIB_EXPORT int terminal_emulator_resize(rvt_lib::TerminalEmulator *, int lines, int columns);
+REDEMPTION_LIB_EXPORT int terminal_emulator_write(
+    rvt_lib::TerminalEmulator *, rvt_lib::OutputFormat, char const * filename, int mode);
+REDEMPTION_LIB_EXPORT int terminal_emulator_write_integrity(
+    rvt_lib::TerminalEmulator *, rvt_lib::OutputFormat,
     char const * filename, char const * prefix_tmp_filename, int mode);
 
 }

@@ -27,6 +27,8 @@
 
 #include <cstring>
 
+using rvt_lib::TerminalEmulator;
+using rvt_lib::OutputFormat;
 
 struct TerminalEmulatorDeleter
 {
@@ -49,9 +51,9 @@ int main(int ac, char ** av)
 
         if (c == '\n' || ++n == 100) {
             n = 0;
-            PError(terminal_emulator_write_integrity(emu, filename, filename, 0440));
+            PError(terminal_emulator_write_integrity(emu, OutputFormat::json, filename, filename, 0440));
         }
     }
     PError(terminal_emulator_finish(emu));
-    PError(terminal_emulator_write_integrity(emu, filename, filename, 0440));
+    PError(terminal_emulator_write_integrity(emu, OutputFormat::json, filename, filename, 0440));
 }
