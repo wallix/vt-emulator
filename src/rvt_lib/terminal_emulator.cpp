@@ -1,3 +1,4 @@
+#include <iostream>
 /*
 *   This program is free software; you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -44,16 +45,16 @@ struct TerminalEmulator
 };
 
 
-class fdbuf
+class OutFile
 {
     int fd;
 
 public:
-    explicit fdbuf(const char * pathname, int flags, mode_t mode) noexcept
+    explicit OutFile(const char * pathname, int flags, mode_t mode) noexcept
     : fd(::open(pathname, flags, mode))
     {}
 
-    ~fdbuf()
+    ~OutFile()
     {
         this->close();
     }
@@ -185,8 +186,8 @@ int terminal_emulator_write(TerminalEmulator * emu, char const * filename)
     int n = std::snprintf(tmpfilename, utils::size(tmpfilename) - 1, "%s-teremu-XXXXXX.tmp", filename);
     tmpfilename[n < 0 ? 0 : n] = 0;
 
-    fdbuf f(tmpfilename, O_WRONLY | O_CREAT, 0444);
-    return_errno_if(f.is_open());
+    OutFile f(tmpfilename, O_WRONLY | O_CREAT, 0440);
+    return_errno_if(!f.is_open());
 
     std::streamsize sz = f.write_all(out.c_str(), out.size());
     return_errno_if(sz < 0 || sz != static_cast<ssize_t>(out.size()));
