@@ -32,6 +32,7 @@
 #include <unistd.h> // unlink
 #include <stdio.h> // rename
 #include <fcntl.h> // O_* flags
+#include <sys/stat.h> // fchmod
 
 
 struct TerminalEmulator
@@ -45,50 +46,40 @@ struct TerminalEmulator
 };
 
 
-class OutFile
+static ssize_t write_all(int fd, const void * data, size_t len) noexcept
 {
-    int fd;
-
-public:
-    explicit OutFile(const char * pathname, int flags, mode_t mode) noexcept
-    : fd(::open(pathname, flags, mode))
-    {}
-
-    ~OutFile()
-    {
-        this->close();
-    }
-
-    void close()
-    {
-        if (this->is_open()) {
-            ::close(this->fd);
-        }
-    }
-
-    bool is_open() const noexcept
-    {
-        return -1 != this->fd;
-    }
-
-    ssize_t write_all(const void * data, size_t len) const noexcept
-    {
-        size_t remaining_len = len;
-        size_t total_sent = 0;
-        while (remaining_len) {
-            ssize_t ret = ::write(this->fd, static_cast<const char*>(data) + total_sent, remaining_len);
-            if (ret <= 0){
-                if (errno == EINTR){
-                    continue;
-                }
-                return -1;
+    size_t remaining_len = len;
+    size_t total_sent = 0;
+    while (remaining_len) {
+        ssize_t ret = ::write(fd, static_cast<const char*>(data) + total_sent, remaining_len);
+        if (ret <= 0){
+            if (errno == EINTR){
+                continue;
             }
-            remaining_len -= ret;
-            total_sent += ret;
+            return -1;
         }
-        return total_sent;
+        remaining_len -= ret;
+        total_sent += ret;
     }
-};
+    return total_sent;
+}
+
+static int build_json_string(TerminalEmulator & emu, std::string & out) noexcept
+{
+    try {
+        out = rvt::json_rendering(
+            emu.emulator.getWindowTitle(),
+            emu.emulator.getCurrentScreen(),
+            rvt::color_table
+        );
+    }
+    catch (...) {
+        return -1;
+    }
+
+    return 0;
+}
+
 
 extern "C" {
 
@@ -171,33 +162,58 @@ int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns)
     return 0;
 }
 
-int terminal_emulator_write(TerminalEmulator * emu, char const * filename)
+int terminal_emulator_write(TerminalEmulator * emu, char const * filename, int mode)
 {
     return_if(!emu);
 
-    std::string const out = rvt::json_rendering(
-        emu->emulator.getWindowTitle(),
-        emu->emulator.getCurrentScreen(),
-        rvt::color_table
-    );
+    std::string out;
+    return_errno_if(build_json_string(*emu, out));
+
+    int fd = ::open(filename, O_WRONLY | O_CREAT, mode);
+    return_errno_if(fd == -1);
+
+    if (write_all(fd, out.c_str(), out.size()) != static_cast<ssize_t>(out.size())) {
+        auto err = errno;
+        close(fd);
+        unlink(filename);
+        return err ? err : -1;
+    }
+
+    close(fd);
+
+    return 0;
+}
+
+int terminal_emulator_write_integrity(
+    TerminalEmulator * emu,
+    char const * filename,
+    char const * prefix_tmp_filename,
+    int mode
+) {
+    return_if(!emu);
+
+    std::string out;
+    return_errno_if(build_json_string(*emu, out));
 
     char tmpfilename[4096];
     tmpfilename[0] = 0;
-    int n = std::snprintf(tmpfilename, utils::size(tmpfilename) - 1, "%s-teremu-XXXXXX.tmp", filename);
+    int n = std::snprintf(tmpfilename, utils::size(tmpfilename) - 1, "%s-teremu-XXXXXX.tmp", prefix_tmp_filename);
     tmpfilename[n < 0 ? 0 : n] = 0;
 
-    OutFile f(tmpfilename, O_WRONLY | O_CREAT, 0440);
-    return_errno_if(!f.is_open());
+    const int fd = ::mkostemps(tmpfilename, 4, O_WRONLY | O_CREAT);
+    return_errno_if(fd == -1);
 
-    std::streamsize sz = f.write_all(out.c_str(), out.size());
-    return_errno_if(sz < 0 || sz != static_cast<ssize_t>(out.size()));
-
-    f.close();
-
-    if (rename(tmpfilename, filename)) {
-        unlink(tmpfilename);
-        return errno;
+    if (fchmod(fd, mode) == -1
+     || write_all(fd, out.c_str(), out.size()) != static_cast<ssize_t>(out.size())
+     || rename(tmpfilename, filename) == -1
+    ) {
+        auto const err = errno;
+        close(fd);
+        unlink(filename);
+        return err ? err : -1;
     }
+
+    close(fd);
 
     return 0;
 }

@@ -37,6 +37,8 @@ REDEMPTION_LIB_EXPORT int terminal_emulator_set_log_function_ctx(TerminalEmulato
 
 REDEMPTION_LIB_EXPORT int terminal_emulator_feed(TerminalEmulator *, char const * s, int n);
 REDEMPTION_LIB_EXPORT int terminal_emulator_resize(TerminalEmulator *, int lines, int columns);
-REDEMPTION_LIB_EXPORT int terminal_emulator_write(TerminalEmulator *, char const * filename);
+REDEMPTION_LIB_EXPORT int terminal_emulator_write(TerminalEmulator *, char const * filename, int mode);
+REDEMPTION_LIB_EXPORT int terminal_emulator_write_integrity(TerminalEmulator *,
+    char const * filename, char const * prefix_tmp_filename, int mode);
 
 }
