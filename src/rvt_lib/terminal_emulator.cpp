@@ -146,14 +146,14 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_finish(TerminalEmulator * emu) noexc
 }
 
 
-REDEMPTION_LIB_EXTERN unsigned terminal_emulator_string_get_size(rvt_lib::TerminalEmulatorString const * s) noexcept
+REDEMPTION_LIB_EXTERN int terminal_emulator_string_get_size(rvt_lib::TerminalEmulatorString const * s) noexcept
 {
-    return unsigned(s->str.size());
+    return s ? int(s->str.size()) : -1;
 }
 
 REDEMPTION_LIB_EXTERN char const * terminal_emulator_string_get_data(rvt_lib::TerminalEmulatorString const * s) noexcept
 {
-    return s->str.c_str();
+    return s ? s->str.c_str() : "";
 }
 
 
@@ -220,6 +220,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write_in_string(
     rvt_lib::TerminalEmulator * emu, rvt_lib::TerminalEmulatorString * s, rvt_lib::OutputFormat format
 ) noexcept {
     return_if(!emu);
+    return_if(!s);
 
     return build_format_string(*emu, format, s->str);
 }

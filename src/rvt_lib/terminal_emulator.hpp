@@ -60,7 +60,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
 REDEMPTION_LIB_EXTERN rvt_lib::TerminalEmulatorString * terminal_emulator_string_init() noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_string_deinit(rvt_lib::TerminalEmulatorString *) noexcept;
 
-REDEMPTION_LIB_EXTERN unsigned terminal_emulator_string_get_size(rvt_lib::TerminalEmulatorString const *) noexcept;
+REDEMPTION_LIB_EXTERN int terminal_emulator_string_get_size(rvt_lib::TerminalEmulatorString const *) noexcept;
 REDEMPTION_LIB_EXTERN char const * terminal_emulator_string_get_data(rvt_lib::TerminalEmulatorString const *) noexcept;
 
 REDEMPTION_LIB_EXTERN int terminal_emulator_write_in_string(
