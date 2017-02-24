@@ -97,9 +97,7 @@ static int build_format_string(TerminalEmulator & emu, OutputFormat format, std:
 }
 
 
-extern "C" {
-
-char const * terminal_emulator_version() noexcept
+REDEMPTION_LIB_EXTERN char const * terminal_emulator_version() noexcept
 {
     return "0.1.0";
 }
@@ -107,18 +105,18 @@ char const * terminal_emulator_version() noexcept
 #define return_if(x) do { if (x) { return -1; } } while (0)
 #define return_errno_if(x) do { if (x) { return errno ? errno : -1; } } while (0)
 
-TerminalEmulator * terminal_emulator_init(int lines, int columns)
+REDEMPTION_LIB_EXTERN TerminalEmulator * terminal_emulator_init(int lines, int columns)
 {
     return new(std::nothrow) TerminalEmulator(lines, columns);
 }
 
-int terminal_emulator_deinit(TerminalEmulator * emu) noexcept
+REDEMPTION_LIB_EXTERN int terminal_emulator_deinit(TerminalEmulator * emu) noexcept
 {
     delete emu;
     return 0;
 }
 
-int terminal_emulator_finish(TerminalEmulator * emu)
+REDEMPTION_LIB_EXTERN int terminal_emulator_finish(TerminalEmulator * emu)
 {
     return_if(!emu);
 
@@ -128,7 +126,7 @@ int terminal_emulator_finish(TerminalEmulator * emu)
 }
 
 
-int terminal_emulator_set_title(TerminalEmulator* emu, char const * title)
+REDEMPTION_LIB_EXTERN int terminal_emulator_set_title(TerminalEmulator* emu, char const * title)
 {
     return_if(!emu);
 
@@ -151,7 +149,7 @@ int terminal_emulator_set_title(TerminalEmulator* emu, char const * title)
     return 0;
 }
 
-int terminal_emulator_set_log_function(TerminalEmulator * emu, void(*log_func)(char const*))
+REDEMPTION_LIB_EXTERN int terminal_emulator_set_log_function(TerminalEmulator * emu, void(*log_func)(char const*))
 {
     return_if(!emu);
 
@@ -159,7 +157,7 @@ int terminal_emulator_set_log_function(TerminalEmulator * emu, void(*log_func)(c
     return 0;
 }
 
-int terminal_emulator_set_log_function_ctx(TerminalEmulator * emu, void(*log_func)(void *, char const *), void * ctx)
+REDEMPTION_LIB_EXTERN int terminal_emulator_set_log_function_ctx(TerminalEmulator * emu, void(*log_func)(void *, char const *), void * ctx)
 {
     return_if(!emu);
 
@@ -167,7 +165,7 @@ int terminal_emulator_set_log_function_ctx(TerminalEmulator * emu, void(*log_fun
     return 0;
 }
 
-int terminal_emulator_feed(TerminalEmulator * emu, char const * s, int n)
+REDEMPTION_LIB_EXTERN int terminal_emulator_feed(TerminalEmulator * emu, char const * s, int n)
 {
     return_if(!emu);
 
@@ -176,7 +174,7 @@ int terminal_emulator_feed(TerminalEmulator * emu, char const * s, int n)
     return 0;
 }
 
-int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns)
+REDEMPTION_LIB_EXTERN int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns)
 {
     return_if(!emu);
 
@@ -184,7 +182,7 @@ int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns)
     return 0;
 }
 
-int terminal_emulator_write(TerminalEmulator * emu, OutputFormat format, char const * filename, int mode)
+REDEMPTION_LIB_EXTERN int terminal_emulator_write(TerminalEmulator * emu, OutputFormat format, char const * filename, int mode)
 {
     return_if(!emu);
 
@@ -206,7 +204,7 @@ int terminal_emulator_write(TerminalEmulator * emu, OutputFormat format, char co
     return 0;
 }
 
-int terminal_emulator_write_integrity(
+REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
     TerminalEmulator * emu,
     OutputFormat format,
     char const * filename,
@@ -242,6 +240,4 @@ int terminal_emulator_write_integrity(
     close(fd);
 
     return 0;
-}
-
 }

@@ -25,7 +25,7 @@
 #define REDEMPTION_CXX_STD_14 201402
 
 // C++14 constexpr functions are inline in C++11
-#if __cplusplus >= REDEMPTION_CXX_STD_14
+#if defined(__cplusplus) && __cplusplus >= REDEMPTION_CXX_STD_14
 # define REDEMPTION_CXX14_CONSTEXPR constexpr
 # define REDEMPTION_CONSTEXPR_AFTER_CXX11 constexpr
 #else
@@ -49,3 +49,11 @@
 #  define REDEMPTION_LIB_EXPORT // REDEMPTION_WARNING("Unknown dynamic link import semantics.")
 # endif
 #endif
+
+#if defined(__cplusplus)
+# define REDEMPTION_EXTERN_C extern "C"
+#else
+# define REDEMPTION_EXTERN_C
+#endif
+
+#define REDEMPTION_LIB_EXTERN REDEMPTION_EXTERN_C REDEMPTION_LIB_EXPORT
