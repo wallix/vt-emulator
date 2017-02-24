@@ -48,9 +48,15 @@ namespace rvt_lib
         : emulator(lines, columns)
         {}
     };
+
+    struct TerminalEmulatorString
+    {
+        std::string str;
+    };
 }
 
 
+using rvt_lib::TerminalEmulatorString;
 using rvt_lib::TerminalEmulator;
 using rvt_lib::OutputFormat;
 
@@ -113,9 +119,20 @@ REDEMPTION_LIB_EXTERN TerminalEmulator * terminal_emulator_init(int lines, int c
     Panic(return new(std::nothrow) TerminalEmulator(lines, columns), nullptr);
 }
 
+REDEMPTION_LIB_EXTERN TerminalEmulatorString * terminal_emulator_string_init() noexcept
+{
+    Panic(return new(std::nothrow) TerminalEmulatorString, nullptr);
+}
+
 REDEMPTION_LIB_EXTERN int terminal_emulator_deinit(TerminalEmulator * emu) noexcept
 {
     delete emu;
+    return 0;
+}
+
+REDEMPTION_LIB_EXTERN int terminal_emulator_string_deinit(TerminalEmulatorString * s) noexcept
+{
+    delete s;
     return 0;
 }
 
@@ -126,6 +143,17 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_finish(TerminalEmulator * emu) noexc
     auto send_fn = [emu](rvt::ucs4_char ucs) { emu->emulator.receiveChar(ucs); };
     Panic_errno(emu->decoder.end_decode(send_fn));
     return 0;
+}
+
+
+REDEMPTION_LIB_EXTERN unsigned terminal_emulator_string_get_size(rvt_lib::TerminalEmulatorString const * s) noexcept
+{
+    return unsigned(s->str.size());
+}
+
+REDEMPTION_LIB_EXTERN char const * terminal_emulator_string_get_data(rvt_lib::TerminalEmulatorString const * s) noexcept
+{
+    return s->str.c_str();
 }
 
 
@@ -185,6 +213,15 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_resize(TerminalEmulator * emu, int l
 
     Panic_errno(emu->emulator.setScreenSize(lines, columns));
     return 0;
+}
+
+
+REDEMPTION_LIB_EXTERN int terminal_emulator_write_in_string(
+    rvt_lib::TerminalEmulator * emu, rvt_lib::TerminalEmulatorString * s, rvt_lib::OutputFormat format
+) noexcept {
+    return_if(!emu);
+
+    return build_format_string(*emu, format, s->str);
 }
 
 REDEMPTION_LIB_EXTERN int terminal_emulator_write(

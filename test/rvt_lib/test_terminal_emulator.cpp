@@ -30,6 +30,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <cstring>
+
 #include <unistd.h>
 
 inline std::string get_file_contents(const char * name)
@@ -55,31 +57,39 @@ inline std::string get_file_contents(const char * name)
 }
 
 
+using rvt_lib::TerminalEmulatorString;
 using rvt_lib::TerminalEmulator;
 using rvt_lib::OutputFormat;
 
 struct TerminalEmulatorDeleter
 {
     void operator()(TerminalEmulator * p) noexcept
-    { terminal_emulator_deinit(p); }
+    { BOOST_CHECK_EQUAL(0, terminal_emulator_deinit(p)); }
+};
+
+struct TerminalEmulatorStringDeleter
+{
+    void operator()(TerminalEmulatorString * p) noexcept
+    { BOOST_CHECK_EQUAL(0, terminal_emulator_string_deinit(p)); }
 };
 
 static int global_i = 1;
 
 BOOST_AUTO_TEST_CASE(TestTermEmu)
 {
-    std::unique_ptr<TerminalEmulator, TerminalEmulatorDeleter> uptr{terminal_emulator_init(3, 10)};
-    auto emu = uptr.get();
+    std::unique_ptr<TerminalEmulator, TerminalEmulatorDeleter> uemu{terminal_emulator_init(3, 10)};
+    auto emu = uemu.get();
 
     BOOST_CHECK(emu);
     BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function(emu, [](char const *) { global_i = 2; }));
     BOOST_CHECK_EQUAL(global_i, 1);
     BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[324a", 6));
     BOOST_CHECK_EQUAL(global_i, 2);
-    BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function_ctx(emu, [](void * ctx, char const *) { *static_cast<int*>(ctx) = 3; }, &global_i));
-    BOOST_CHECK_EQUAL(global_i, 2);
+    int ctx_i = 1;
+    BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function_ctx(emu, [](void * ctx, char const *) { *static_cast<int*>(ctx) = 3; }, &ctx_i));
+    BOOST_CHECK_EQUAL(ctx_i, 1);
     BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[324a", 6));
-    BOOST_CHECK_EQUAL(global_i, 3);
+    BOOST_CHECK_EQUAL(ctx_i, 3);
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_set_title(emu, "Lib test"));
     BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "ABC", 3));
@@ -95,4 +105,14 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(0, terminal_emulator_write(emu, OutputFormat::json, filename, 0664));
     BOOST_CHECK_EQUAL(contents, get_file_contents(filename));
     BOOST_CHECK_EQUAL(0, unlink(filename));
+
+
+    std::unique_ptr<TerminalEmulatorString, TerminalEmulatorStringDeleter> ustr{
+        terminal_emulator_string_init()};
+    auto tstr = ustr.get();
+    BOOST_CHECK_EQUAL(0, terminal_emulator_string_get_size(tstr));
+    BOOST_CHECK_EQUAL("", terminal_emulator_string_get_data(tstr));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_write_in_string(emu, tstr, OutputFormat::json));
+    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_string_get_size(tstr));
+    BOOST_CHECK_EQUAL(contents, terminal_emulator_string_get_data(tstr));
 }

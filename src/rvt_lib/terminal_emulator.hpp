@@ -25,6 +25,7 @@
 namespace rvt_lib
 {
     class TerminalEmulator;
+    class TerminalEmulatorString;
 
     enum class OutputFormat : int {
         json,
@@ -32,7 +33,7 @@ namespace rvt_lib
     };
 }
 
-// \return  0 if success, -1 if internal error (emu is null) and > 0 is an `errno` code
+// \return  0 if success, -2 if bad format, -1 if internal error (emu is null) and > 0 is an `errno` code
 //@{
 REDEMPTION_LIB_EXTERN char const * terminal_emulator_version() noexcept;
 REDEMPTION_LIB_EXTERN rvt_lib::TerminalEmulator * terminal_emulator_init(int lines, int columns) noexcept;
@@ -48,9 +49,21 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_set_log_function_ctx(
 
 REDEMPTION_LIB_EXTERN int terminal_emulator_feed(rvt_lib::TerminalEmulator *, char const * s, int n) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_resize(rvt_lib::TerminalEmulator *, int lines, int columns) noexcept;
+
 REDEMPTION_LIB_EXTERN int terminal_emulator_write(
     rvt_lib::TerminalEmulator *, rvt_lib::OutputFormat, char const * filename, int mode) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
     rvt_lib::TerminalEmulator *, rvt_lib::OutputFormat,
     char const * filename, char const * prefix_tmp_filename, int mode) noexcept;
+
+
+REDEMPTION_LIB_EXTERN rvt_lib::TerminalEmulatorString * terminal_emulator_string_init() noexcept;
+REDEMPTION_LIB_EXTERN int terminal_emulator_string_deinit(rvt_lib::TerminalEmulatorString *) noexcept;
+
+REDEMPTION_LIB_EXTERN unsigned terminal_emulator_string_get_size(rvt_lib::TerminalEmulatorString const *) noexcept;
+REDEMPTION_LIB_EXTERN char const * terminal_emulator_string_get_data(rvt_lib::TerminalEmulatorString const *) noexcept;
+
+REDEMPTION_LIB_EXTERN int terminal_emulator_write_in_string(
+    rvt_lib::TerminalEmulator *, rvt_lib::TerminalEmulatorString *, rvt_lib::OutputFormat) noexcept;
+
 //@}
