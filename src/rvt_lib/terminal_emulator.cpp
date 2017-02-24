@@ -220,6 +220,9 @@ int terminal_emulator_write_integrity(
 
     char tmpfilename[4096];
     tmpfilename[0] = 0;
+    if (prefix_tmp_filename == nullptr) {
+        prefix_tmp_filename = filename;
+    }
     int n = std::snprintf(tmpfilename, utils::size(tmpfilename) - 1, "%s-teremu-XXXXXX.tmp", prefix_tmp_filename);
     tmpfilename[n < 0 ? 0 : n] = 0;
 
