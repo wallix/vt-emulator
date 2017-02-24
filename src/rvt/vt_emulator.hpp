@@ -64,11 +64,11 @@ public:
     void clearEntireScreen();
     void reset();
 
-    Screen const & getCurrentScreen() const { return *_currentScreen; }
-    array_view<ucs4_char const> getWindowTitle() const { return {windowTitle, windowTitleLen}; }
+    Screen const & getCurrentScreen() const noexcept { return *_currentScreen; }
+    array_view<ucs4_char const> getWindowTitle() const noexcept { return {windowTitle, windowTitleLen}; }
 
-    void setWindowTitle(ucs4_carray_view title);
-    void setLogFunction(std::function<void(char const *)> f)
+    void setWindowTitle(ucs4_carray_view title) noexcept;
+    void setLogFunction(std::function<void(char const *)> f) noexcept
     { this->_logFunction = std::move(f); }
 
     void receiveChar(ucs4_char cc);

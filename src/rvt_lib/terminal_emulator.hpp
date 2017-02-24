@@ -32,22 +32,25 @@ namespace rvt_lib
     };
 }
 
+// \return  0 if success, -1 if internal error (emu is null) and > 0 is an `errno` code
+//@{
 REDEMPTION_LIB_EXTERN char const * terminal_emulator_version() noexcept;
-REDEMPTION_LIB_EXTERN rvt_lib::TerminalEmulator * terminal_emulator_init(int lines, int columns);
+REDEMPTION_LIB_EXTERN rvt_lib::TerminalEmulator * terminal_emulator_init(int lines, int columns) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_deinit(rvt_lib::TerminalEmulator *) noexcept;
 
-REDEMPTION_LIB_EXTERN int terminal_emulator_finish(rvt_lib::TerminalEmulator *);
+REDEMPTION_LIB_EXTERN int terminal_emulator_finish(rvt_lib::TerminalEmulator *) noexcept;
 
-REDEMPTION_LIB_EXTERN int terminal_emulator_set_title(rvt_lib::TerminalEmulator *, char const * title);
+REDEMPTION_LIB_EXTERN int terminal_emulator_set_title(rvt_lib::TerminalEmulator *, char const * title) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_set_log_function(
-    rvt_lib::TerminalEmulator *, void(* log_func)(char const *));
+    rvt_lib::TerminalEmulator *, void(* log_func)(char const *)) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_set_log_function_ctx(
-    rvt_lib::TerminalEmulator *, void(* log_func)(void *, char const *), void * ctx);
+    rvt_lib::TerminalEmulator *, void(* log_func)(void *, char const *), void * ctx) noexcept;
 
-REDEMPTION_LIB_EXTERN int terminal_emulator_feed(rvt_lib::TerminalEmulator *, char const * s, int n);
-REDEMPTION_LIB_EXTERN int terminal_emulator_resize(rvt_lib::TerminalEmulator *, int lines, int columns);
+REDEMPTION_LIB_EXTERN int terminal_emulator_feed(rvt_lib::TerminalEmulator *, char const * s, int n) noexcept;
+REDEMPTION_LIB_EXTERN int terminal_emulator_resize(rvt_lib::TerminalEmulator *, int lines, int columns) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_write(
-    rvt_lib::TerminalEmulator *, rvt_lib::OutputFormat, char const * filename, int mode);
+    rvt_lib::TerminalEmulator *, rvt_lib::OutputFormat, char const * filename, int mode) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
     rvt_lib::TerminalEmulator *, rvt_lib::OutputFormat,
-    char const * filename, char const * prefix_tmp_filename, int mode);
+    char const * filename, char const * prefix_tmp_filename, int mode) noexcept;
+//@}

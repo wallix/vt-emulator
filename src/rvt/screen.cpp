@@ -62,6 +62,8 @@ Screen::Screen(int lines, int columns):
     _effectiveRendition(Rendition::Default),
     _lastPos(-1)
 {
+    assert(lines >= 0);
+    assert(columns >= 0);
     _lineProperties.resize(_lines + 1, LineProperty::Default);
 
     initTabStops();
