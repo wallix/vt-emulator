@@ -51,7 +51,7 @@ return function(screen)
         terminal += '<p>' + htmlline + '\n</p>';
     }
 
-    return '<p id="tty-player-title">' + (screen.title||'No Title') + '</p>'+
+    return '<p id="tty-player-title">' + (screen.title||'') + '</p>'+
         '<div id="tty-player-terminal">' +
             terminal +
             // force terminal width
