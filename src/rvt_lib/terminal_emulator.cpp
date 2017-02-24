@@ -140,13 +140,14 @@ int terminal_emulator_set_title(TerminalEmulator* emu, char const * title)
 
     auto send_fn = [&p](rvt::ucs4_char ucs) { *p = ucs; ++p; };
     while (sz && p < e) {
-        std::size_t consumed = std::min(sz, std::size_t(e-p));
+        std::size_t const consumed = std::min(sz, std::size_t(e-p));
         emu->decoder.decode(const_bytes_array(title, consumed), send_fn);
         sz -= consumed;
+        title += consumed;
     }
     emu->decoder.end_decode(send_fn);
 
-    emu->emulator.setWindowTitle({ucs_title, std::size_t(e-ucs_title)});
+    emu->emulator.setWindowTitle({ucs_title, std::size_t(p-ucs_title)});
     return 0;
 }
 
