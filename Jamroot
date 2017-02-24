@@ -4,7 +4,8 @@ constant SRC : src ;
 constant SRC_TEST : test ;
 constant RVT_SRC : $(SRC)/rvt ;
 constant RVT_LIB_SRC : $(SRC)/rvt_lib ;
-constant RVT_SRC_TEST : $(SRC_TEST)/rvt ;
+constant RVT_TEST : $(SRC_TEST)/rvt ;
+constant RVT_LIB_TEST : $(SRC_TEST)/rvt_lib ;
 
 project vt_emulator
 : requirements
@@ -80,13 +81,15 @@ exe terminal_browser : tools/terminal_browser.cpp libterm : ;
 
 ## Tests
 ## @{
-unit-test test_character_color : $(RVT_SRC_TEST)/test_character_color.cpp : $(TEST_DEPENDENCIES) ;
-unit-test test_character : $(RVT_SRC_TEST)/test_character.cpp : $(TEST_DEPENDENCIES) ;
-unit-test test_charsets : $(RVT_SRC_TEST)/test_charsets.cpp : $(TEST_DEPENDENCIES) ;
+unit-test test_character_color : $(RVT_TEST)/test_character_color.cpp : $(TEST_DEPENDENCIES) ;
+unit-test test_character : $(RVT_TEST)/test_character.cpp : $(TEST_DEPENDENCIES) ;
+unit-test test_charsets : $(RVT_TEST)/test_charsets.cpp : $(TEST_DEPENDENCIES) ;
 
-unit-test test_screen : $(RVT_SRC_TEST)/test_screen.cpp screen : $(TEST_DEPENDENCIES) ;
+unit-test test_screen : $(RVT_TEST)/test_screen.cpp screen : $(TEST_DEPENDENCIES) ;
 
-unit-test test_utf8_decoder : $(RVT_SRC_TEST)/test_utf8_decoder.cpp : $(TEST_DEPENDENCIES) ;
+unit-test test_utf8_decoder : $(RVT_TEST)/test_utf8_decoder.cpp : $(TEST_DEPENDENCIES) ;
 
-unit-test test_vt_emulator : $(RVT_SRC_TEST)/test_vt_emulator.cpp libemu : $(TEST_DEPENDENCIES) ;
+unit-test test_vt_emulator : $(RVT_TEST)/test_vt_emulator.cpp libemu : $(TEST_DEPENDENCIES) ;
+
+unit-test test_terminal_emulator : $(RVT_LIB_TEST)/test_terminal_emulator.cpp libterm : $(TEST_DEPENDENCIES) ;
 ## }
