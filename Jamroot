@@ -37,8 +37,11 @@ rule setvar ( env : default * )
 
 constant LIB_PREFIX : [ setvar LIB_PREFIX : build/lib ] ;
 constant INCLUDE_PREFIX : [ setvar INCLUDE_PREFIX : build/include/wallix/vt-emulator ] ;
+constant TTY_BROWSER_JS_FILE : [ setvar TTY_BROWSER_JS_PREFIX : build/browser ] ;
+constant TTY_BROWSER_CSS_FILE : [ setvar TTY_BROWSER_CSS_PREFIX : build/browser ] ;
 
-explicit install install-libs install-headers ;
+explicit install install-libs install-headers install-tty-browser install-tty-browser-css install-tty-browser-js ;
+alias install-tty-browser : install-tty-browser-css install-tty-browser-js ;
 alias install : install-libs install-headers ;
 
 alias libs : libwallix_term ;
@@ -54,6 +57,19 @@ install install-headers
     :
     : <location>$(INCLUDE_PREFIX)
     ;
+
+install install-tty-browser-js
+    : browser/tty-emulator/html_rendering.js
+    :
+    : <location>$(TTY_BROWSER_JS_FILE)
+    ;
+
+install install-tty-browser-css
+    : browser/tty-emulator/player.css
+    :
+    : <location>$(TTY_BROWSER_CSS_FILE)
+    ;
+
 
 lib libboost_unit_test : : <name>boost_unit_test_framework <link>shared ;
 

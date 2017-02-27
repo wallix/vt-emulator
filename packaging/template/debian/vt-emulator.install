@@ -1,5 +1,3 @@
-%LIB_PREFIX%/libwallix_term.a
 %LIB_PREFIX%/libwallix_term.so
-%LIB_PREFIX%/libwallix_term_d.a
-%LIB_PREFIX%/libwallix_term_d.so
-%INCLUDE_PREFIX%/terminal_emulator.hpp
+%TTY_BROWSER_JS_PREFIX%
+%TTY_BROWSER_CSS_PREFIX%

@@ -16,6 +16,22 @@ ls -R
 $ `bjam` or `bjam toolset=compiler` (see http://www.boost.org/build/doc/html/bbv2/overview/configuration.html)
 
 
+# Install
+
+Set paths environment (optional):
+
+```bash
+export LIB_PREFIX=build/lib
+export INCLUDE_PREFIX=build/include/wallix/vt-emulator
+export TTY_BROWSER_JS_FILE=build/browser
+export TTY_BROWSER_CSS_FILE=build/browser
+```
+
+Then
+
+$ `bjam install install-tty-browser`
+
+
 # Package
 
 With Wallix packager (https://github.com/wallix/packager).
