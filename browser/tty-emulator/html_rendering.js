@@ -31,16 +31,16 @@ return function(screen)
     for (var lines of screen.data) {
         var htmlline = ''
         for (var line of lines) {
-            var sz_s = 0;
+            //var sz_s = 0;
             for (var e of line) {
                 //console.log(e)
-                if (e.r != undefined) estyle.r = e.r;
-                if (e.f != undefined) estyle.f = e.f;
-                if (e.b != undefined) estyle.b = e.b;
+                if (e.r !== undefined) estyle.r = e.r;
+                if (e.f !== undefined) estyle.f = e.f;
+                if (e.b !== undefined) estyle.b = e.b;
                 htmlline += '<span style="' + elem2style(estyle) + '">' +
                     (e.s ? e.s.replace(/&/g, '&amp;').replace(/</g, '&lt;') : '') +
                     '</span>'
-                sz_s += e.s ? e.s.length : 0
+                //sz_s += e.s ? e.s.length : 0
             }
             //if (sz_s && sz_s < screen.columns) {
             //    htmlline += '<span style="' + elem2style({'f':estyle.f,'b':estyle.b}) + '">' +
