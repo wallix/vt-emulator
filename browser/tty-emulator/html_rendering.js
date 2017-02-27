@@ -42,11 +42,11 @@ return function(screen)
                     '</span>'
                 sz_s += e.s ? e.s.length : 0
             }
-            if (sz_s && sz_s < screen.columns) {
-                htmlline += '<span style="' + elem2style({'f':estyle.f,'b':estyle.b}) + '">' +
-                    empty_line.substr(0, screen.columns - sz_s) +
-                    '</span>'
-            }
+            //if (sz_s && sz_s < screen.columns) {
+            //    htmlline += '<span style="' + elem2style({'f':estyle.f,'b':estyle.b}) + '">' +
+            //        empty_line.substr(0, screen.columns - sz_s) +
+            //        '</span>'
+            //}
         }
         terminal += '<p>' + htmlline + '\n</p>';
     }
@@ -55,7 +55,7 @@ return function(screen)
         '<div id="tty-player-terminal">' +
             terminal +
             // force terminal width
-            //'<p>' + empty_line.substr(0, screen.columns) + '</p>' +
+            '<p style="height:1px">' + empty_line.substr(0, screen.columns) + '</p>' +
         '</div>'
     ;
 }
