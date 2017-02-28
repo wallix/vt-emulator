@@ -29,6 +29,7 @@
 #include <vector>
 
 #include <cstdint>
+#include <cassert>
 
 namespace rvt
 {
@@ -61,6 +62,22 @@ private:
     constexpr static Underlying to_flag(Bit pos) { return 1u << Underlying(pos); }
 
     Underlying value_;
+};
+
+
+struct strictly_positif
+{
+    /*constexpr*/ strictly_positif(int n) noexcept
+    : value_(n)
+    {
+        assert(n > 0);
+    }
+
+    int get() const noexcept { return value_; }
+    operator int () const noexcept { return value_; }
+
+private:
+    int value_;
 };
 
 
@@ -102,7 +119,7 @@ public:
     };
 
     /** Construct a new screen image of size @p lines by @p columns. */
-    Screen(int lines, int columns);
+    Screen(strictly_positif lines, strictly_positif columns);
     ~Screen();
 
     Screen(const Screen&) = delete;
@@ -386,7 +403,7 @@ public:
      * screen size.  Tab stops are also reset and the current selection is
      * cleared.
      */
-    void resizeImage(int new_lines, int new_columns);
+    void resizeImage(strictly_positif new_lines, strictly_positif new_columns);
 
     /** Return the number of lines. */
     int getLines() const {

@@ -117,16 +117,27 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(contents, terminal_emulator_string_get_data(tstr));
 
 
+    BOOST_CHECK_EQUAL(0, terminal_emulator_resize(emu, 2, 2));
+
+    contents = R"xxx({"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":15658734,"b":3355443},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
+
+    BOOST_CHECK_EQUAL(0, terminal_emulator_write_in_string(emu, tstr, OutputFormat::json));
+    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_string_get_size(tstr));
+    BOOST_CHECK_EQUAL(contents, terminal_emulator_string_get_data(tstr));
+
+
     // check error code
-    BOOST_CHECK_EQUAL(-1, terminal_emulator_set_log_function_ctx(nullptr, [](void *, char const *) {}, nullptr));
-    BOOST_CHECK_EQUAL(-1, terminal_emulator_set_log_function(nullptr, [](char const *) {}));
-    BOOST_CHECK_EQUAL(-1, terminal_emulator_set_title(nullptr, "Lib test"));
-    BOOST_CHECK_EQUAL(-1, terminal_emulator_feed(nullptr, "\033[324a", 6));
-    BOOST_CHECK_EQUAL(-1, terminal_emulator_write(nullptr, OutputFormat::json, filename, 0664));
-    BOOST_CHECK_EQUAL(-1, terminal_emulator_write_integrity(nullptr, OutputFormat::json, filename, filename, 0664));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function_ctx(nullptr, [](void *, char const *) {}, nullptr));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function(nullptr, [](char const *) {}));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_set_title(nullptr, "Lib test"));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_feed(nullptr, "\033[324a", 6));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_write(nullptr, OutputFormat::json, filename, 0664));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_write_integrity(nullptr, OutputFormat::json, filename, filename, 0664));
     BOOST_CHECK_EQUAL("", terminal_emulator_string_get_data(nullptr));
-    BOOST_CHECK_EQUAL(-1, terminal_emulator_write_in_string(emu, nullptr, OutputFormat::json));
-    BOOST_CHECK_EQUAL(-1, terminal_emulator_string_get_size(nullptr));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_write_in_string(emu, nullptr, OutputFormat::json));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_string_get_size(nullptr));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_resize(emu, -3, 3));
+    BOOST_CHECK_EQUAL(-1, terminal_emulator_resize(emu, ~0u>>1, ~0u>>1)); // bad alloc
 
     BOOST_CHECK(0 < terminal_emulator_write_integrity(emu, OutputFormat::json, "/a/a", filename, 0664));
     BOOST_CHECK(0 < terminal_emulator_write_integrity(emu, OutputFormat::json, filename, "/a/a", 0664));

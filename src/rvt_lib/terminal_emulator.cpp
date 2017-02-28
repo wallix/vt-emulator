@@ -96,7 +96,7 @@ static int build_format_string(TerminalEmulator & emu, OutputFormat format, std:
         #undef call_rendering
     }
     catch (...) {
-        return -1;
+        return errno ? errno : -1;
     }
 
     return 0;
@@ -108,7 +108,7 @@ REDEMPTION_LIB_EXTERN char const * terminal_emulator_version() noexcept
     return "0.1.0";
 }
 
-#define return_if(x) do { if (x) { return -1; } } while (0)
+#define return_if(x) do { if (x) { return -2; } } while (0)
 #define return_if_neg(x) do { if (int err_ = (x)) { if (err_ < 0) return err_; } } while (0)
 #define return_errno_if(x) do { if (x) { return errno ? errno : -1; } } while (0)
 #define Panic(expr, err) do { try { expr; } catch (...) { return err; } } while (0)
@@ -116,6 +116,9 @@ REDEMPTION_LIB_EXTERN char const * terminal_emulator_version() noexcept
 
 REDEMPTION_LIB_EXTERN TerminalEmulator * terminal_emulator_init(int lines, int columns) noexcept
 {
+    if (lines <= 0 || columns <= 0) {
+        return nullptr;
+    }
     Panic(return new(std::nothrow) TerminalEmulator(lines, columns), nullptr);
 }
 
@@ -148,7 +151,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_finish(TerminalEmulator * emu) noexc
 
 REDEMPTION_LIB_EXTERN int terminal_emulator_string_get_size(rvt_lib::TerminalEmulatorString const * s) noexcept
 {
-    return s ? int(s->str.size()) : -1;
+    return s ? int(s->str.size()) : -2;
 }
 
 REDEMPTION_LIB_EXTERN char const * terminal_emulator_string_get_data(rvt_lib::TerminalEmulatorString const * s) noexcept
@@ -210,6 +213,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_feed(TerminalEmulator * emu, char co
 REDEMPTION_LIB_EXTERN int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns) noexcept
 {
     return_if(!emu);
+    return_if(lines <= 0 || columns <= 0);
 
     Panic_errno(emu->emulator.setScreenSize(lines, columns));
     return 0;

@@ -48,7 +48,7 @@ const Character Screen::DefaultChar = Character(' ',
                                       Rendition::Default,
                                       false);
 
-Screen::Screen(int lines, int columns):
+Screen::Screen(strictly_positif lines, strictly_positif columns):
     _lines(lines),
     _columns(columns),
     _screenLines(_lines + 1),
@@ -62,8 +62,6 @@ Screen::Screen(int lines, int columns):
     _effectiveRendition(Rendition::Default),
     _lastPos(-1)
 {
-    assert(lines >= 0);
-    assert(columns >= 0);
     _lineProperties.resize(_lines + 1, LineProperty::Default);
 
     initTabStops();
@@ -278,7 +276,7 @@ void Screen::restoreCursor()
     updateEffectiveRendition();
 }
 
-void Screen::resizeImage(int new_lines, int new_columns)
+void Screen::resizeImage(strictly_positif new_lines, strictly_positif new_columns)
 {
     if ((new_lines == _lines) && (new_columns == _columns)) return;
 
@@ -292,8 +290,11 @@ void Screen::resizeImage(int new_lines, int new_columns)
 
     // create new screen _lines and copy from old to new
     _screenLines.resize(new_lines + 1);
-    for (int i = _lines; (i > 0) && (i < new_lines + 1); i++)
-        _screenLines[i].resize(new_columns); // TODO + max konsole_wcwidth - 1
+    for (auto & line : _screenLines) {
+        if (line.size() > std::size_t(new_columns)) {
+            line.resize(new_columns); // TODO + max konsole_wcwidth - 1
+        }
+    }
     _lineProperties.resize(new_lines + 1, LineProperty::Default);
 
     _lines = new_lines;
