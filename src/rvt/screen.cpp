@@ -660,7 +660,7 @@ void Screen::displayCharacter(ucs4_char c)
             new_table.resize(_lines * _columns);
             auto b = new_table.begin();
             auto p = b;
-            for (auto & line : _screenLines) {
+            for (auto & line : getMutableScreenLines()) {
                 for (Character & ch : line) {
                     if (ch.is_extended()) {
                         ch.character = p - b;
@@ -818,10 +818,10 @@ void Screen::clearImage(int loca, int loce, char c)
         std::vector<Character>& line = _screenLines[y];
 
         if (isDefaultCh && endCol == _columns - 1) {
-            line.resize(startCol);
+            line.resize(startCol/*, clearCh*/);
         } else {
             if (line.size() < std::size_t(endCol + 1))
-                line.resize(endCol + 1);
+                line.resize(endCol + 1/*, clearCh*/);
 
             Character* data = line.data();
             for (int i = startCol; i <= endCol; i++)
@@ -873,12 +873,10 @@ void Screen::clearToBeginOfScreen()
 
 void Screen::clearEntireScreen()
 {
-    // Add entire screen to history
-    for (int i = 0; i < (_lines - 1); i++) {
-        scrollUp(0, 1);
+    std::fill(_lineProperties.begin(), _lineProperties.end(), LineProperty::Default);
+    for (auto & v : getMutableScreenLines()) {
+        v.resize(0);
     }
-
-    clearImage(loc(0, 0), loc(_columns - 1, _lines - 1), ' ');
 }
 
 /*! fill screen with 'E'
@@ -887,7 +885,12 @@ void Screen::clearEntireScreen()
 
 void Screen::helpAlign()
 {
-    clearImage(loc(0, 0), loc(_columns - 1, _lines - 1), 'E');
+    std::fill(_lineProperties.begin(), _lineProperties.end(), LineProperty::Default);
+    Character clearCh('E');
+    for (auto & v : getMutableScreenLines()) {
+        std::fill(v.begin(), v.end(), clearCh);
+        v.resize(_columns, clearCh);
+    }
 }
 
 void Screen::clearToEndOfLine()

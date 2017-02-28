@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
 
     char const * filename = "/tmp/termemu-test.json";
 
-    char const * contents = R"xxx({"lines":3,"columns":10,"title":"Lib test","style":{"r":0,"f":15658734,"b":3355443},"data":[[[{"s":"ABC"}]],[[{}]],[[{}]],[[{}]]]})xxx";
+    char const * contents = R"xxx({"lines":3,"columns":10,"title":"Lib test","style":{"r":0,"f":15658734,"b":3355443},"data":[[[{"s":"ABC"}]],[[{}]],[[{}]]]})xxx";
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_write_integrity(emu, OutputFormat::json, filename, filename, 0664));
     BOOST_CHECK_EQUAL(contents, get_file_contents(filename));

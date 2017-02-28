@@ -463,10 +463,16 @@ private:
 # endif
 
 public:
-    std::vector<ImageLine> const & getScreenLines() const { return _screenLines;  }
-    ExtendedCharTable const & extendedCharTable() const { return _extendedCharTable;  }
+    array_view<const ImageLine> getScreenLines() const
+    { return array_view<const ImageLine>{_screenLines.data(), std::size_t(_lines)};  }
+
+    ExtendedCharTable const & extendedCharTable() const
+    { return _extendedCharTable;  }
 
 private:
+    array_view<ImageLine> getMutableScreenLines()
+    { return array_view<ImageLine>{_screenLines.data(), std::size_t(_lines)};  }
+
     std::vector<LineProperty> _lineProperties; // QVarLengthArray<LineProperty, 64>
 
     // cursor location
