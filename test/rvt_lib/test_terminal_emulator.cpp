@@ -57,7 +57,6 @@ inline std::string get_file_contents(const char * name)
 }
 
 
-using rvt_lib::TerminalEmulatorString;
 using rvt_lib::TerminalEmulator;
 using rvt_lib::OutputFormat;
 
@@ -65,12 +64,6 @@ struct TerminalEmulatorDeleter
 {
     void operator()(TerminalEmulator * p) noexcept
     { BOOST_CHECK_EQUAL(0, terminal_emulator_deinit(p)); }
-};
-
-struct TerminalEmulatorStringDeleter
-{
-    void operator()(TerminalEmulatorString * p) noexcept
-    { BOOST_CHECK_EQUAL(0, terminal_emulator_string_deinit(p)); }
 };
 
 static int global_i = 1;
@@ -107,23 +100,23 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(0, unlink(filename));
 
 
-    std::unique_ptr<TerminalEmulatorString, TerminalEmulatorStringDeleter> ustr{
-        terminal_emulator_string_init()};
-    auto tstr = ustr.get();
-    BOOST_CHECK_EQUAL(0, terminal_emulator_string_get_size(tstr));
-    BOOST_CHECK_EQUAL("", terminal_emulator_string_get_data(tstr));
-    BOOST_CHECK_EQUAL(0, terminal_emulator_write_in_string(emu, tstr, OutputFormat::json));
-    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_string_get_size(tstr));
-    BOOST_CHECK_EQUAL(contents, terminal_emulator_string_get_data(tstr));
+    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_buffer_size(emu));
+    BOOST_CHECK_EQUAL(contents, terminal_emulator_buffer_data(emu));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_reset(emu));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_size(emu));
+    BOOST_CHECK_EQUAL("", terminal_emulator_buffer_data(emu));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_write_in_buffer(emu, OutputFormat::json));
+    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_buffer_size(emu));
+    BOOST_CHECK_EQUAL(contents, terminal_emulator_buffer_data(emu));
 
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_resize(emu, 2, 2));
 
     contents = R"xxx({"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":15658734,"b":3355443},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_write_in_string(emu, tstr, OutputFormat::json));
-    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_string_get_size(tstr));
-    BOOST_CHECK_EQUAL(contents, terminal_emulator_string_get_data(tstr));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_write_in_buffer(emu, OutputFormat::json));
+    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_buffer_size(emu));
+    BOOST_CHECK_EQUAL(contents, terminal_emulator_buffer_data(emu));
 
 
     // check error code
@@ -133,9 +126,10 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(-2, terminal_emulator_feed(nullptr, "\033[324a", 6));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_write(nullptr, OutputFormat::json, filename, 0664));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_write_integrity(nullptr, OutputFormat::json, filename, filename, 0664));
-    BOOST_CHECK_EQUAL("", terminal_emulator_string_get_data(nullptr));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_write_in_string(emu, nullptr, OutputFormat::json));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_string_get_size(nullptr));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_write_in_buffer(nullptr, OutputFormat::json));
+    BOOST_CHECK_EQUAL("", terminal_emulator_buffer_data(nullptr));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_size(nullptr));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_reset(nullptr));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_resize(emu, -3, 3));
     BOOST_CHECK_EQUAL(-1, terminal_emulator_resize(emu, ~0u>>1, ~0u>>1)); // bad alloc
 

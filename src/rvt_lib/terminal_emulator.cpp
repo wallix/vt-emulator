@@ -43,20 +43,15 @@ namespace rvt_lib
     {
         rvt::VtEmulator emulator;
         rvt::Utf8Decoder decoder;
+        std::string str;
 
         TerminalEmulator(int lines, int columns)
         : emulator(lines, columns)
         {}
     };
-
-    struct TerminalEmulatorString
-    {
-        std::string str;
-    };
 }
 
 
-using rvt_lib::TerminalEmulatorString;
 using rvt_lib::TerminalEmulator;
 using rvt_lib::OutputFormat;
 
@@ -122,20 +117,9 @@ REDEMPTION_LIB_EXTERN TerminalEmulator * terminal_emulator_init(int lines, int c
     Panic(return new(std::nothrow) TerminalEmulator(lines, columns), nullptr);
 }
 
-REDEMPTION_LIB_EXTERN TerminalEmulatorString * terminal_emulator_string_init() noexcept
-{
-    Panic(return new(std::nothrow) TerminalEmulatorString, nullptr);
-}
-
 REDEMPTION_LIB_EXTERN int terminal_emulator_deinit(TerminalEmulator * emu) noexcept
 {
     delete emu;
-    return 0;
-}
-
-REDEMPTION_LIB_EXTERN int terminal_emulator_string_deinit(TerminalEmulatorString * s) noexcept
-{
-    delete s;
     return 0;
 }
 
@@ -149,18 +133,25 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_finish(TerminalEmulator * emu) noexc
 }
 
 
-REDEMPTION_LIB_EXTERN int terminal_emulator_string_get_size(rvt_lib::TerminalEmulatorString const * s) noexcept
+REDEMPTION_LIB_EXTERN int terminal_emulator_buffer_size(rvt_lib::TerminalEmulator const * emu) noexcept
 {
-    return s ? int(s->str.size()) : -2;
+    return emu ? int(emu->str.size()) : -2;
 }
 
-REDEMPTION_LIB_EXTERN char const * terminal_emulator_string_get_data(rvt_lib::TerminalEmulatorString const * s) noexcept
+REDEMPTION_LIB_EXTERN char const * terminal_emulator_buffer_data(rvt_lib::TerminalEmulator const * emu) noexcept
 {
-    return s ? s->str.c_str() : "";
+    return emu ? emu->str.c_str() : "";
+}
+
+REDEMPTION_LIB_EXTERN int terminal_emulator_buffer_reset(rvt_lib::TerminalEmulator * emu) noexcept
+{
+    return_if(!emu);
+    emu->str.clear();
+    return 0;
 }
 
 
-REDEMPTION_LIB_EXTERN int terminal_emulator_set_title(TerminalEmulator* emu, char const * title) noexcept
+REDEMPTION_LIB_EXTERN int terminal_emulator_set_title(TerminalEmulator * emu, char const * title) noexcept
 {
     return_if(!emu);
 
@@ -220,13 +211,12 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_resize(TerminalEmulator * emu, int l
 }
 
 
-REDEMPTION_LIB_EXTERN int terminal_emulator_write_in_string(
-    rvt_lib::TerminalEmulator * emu, rvt_lib::TerminalEmulatorString * s, rvt_lib::OutputFormat format
+REDEMPTION_LIB_EXTERN int terminal_emulator_write_in_buffer(
+    rvt_lib::TerminalEmulator * emu, rvt_lib::OutputFormat format
 ) noexcept {
     return_if(!emu);
-    return_if(!s);
 
-    return build_format_string(*emu, format, s->str);
+    return build_format_string(*emu, format, emu->str);
 }
 
 REDEMPTION_LIB_EXTERN int terminal_emulator_write(
@@ -234,7 +224,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write(
 ) noexcept {
     return_if(!emu);
 
-    std::string out;
+    std::string & out = emu->str;
     return_if_neg(build_format_string(*emu, format, out));
 
     int fd = ::open(filename, O_WRONLY | O_CREAT, mode);
@@ -261,7 +251,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
 ) noexcept {
     return_if(!emu);
 
-    std::string out;
+    std::string & out = emu->str;
     return_if_neg(build_format_string(*emu, format, out));
 
     char tmpfilename[4096];
