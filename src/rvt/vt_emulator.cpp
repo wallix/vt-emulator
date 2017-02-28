@@ -722,7 +722,7 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     case TY_CSI_PR('h', 1034) : /* IGNORED: 8bitinput activation     */ break; //XTERM
 
     case TY_CSI_PR('h', 1047) :          setMode      (Mode::AppScreen); break; //XTERM
-    case TY_CSI_PR('l', 1047) : _currentScreen->clearEntireScreen(); resetMode(Mode::AppScreen); break; //XTERM
+    case TY_CSI_PR('l', 1047) :        resetMode      (Mode::AppScreen); break; //XTERM
     case TY_CSI_PR('s', 1047) :         saveMode      (Mode::AppScreen); break; //XTERM
     case TY_CSI_PR('r', 1047) :      restoreMode      (Mode::AppScreen); break; //XTERM
 
@@ -734,7 +734,7 @@ void VtEmulator::processToken(int token, int32_t p, int q)
 
     //FIXME: every once new sequences like this pop up in xterm.
     //       Here's a guess of what they could mean.
-    case TY_CSI_PR('h', 1049) : saveCursor(); _currentScreen->clearEntireScreen(); setMode(Mode::AppScreen); break; //XTERM
+    case TY_CSI_PR('h', 1049) : saveCursor(); _screen1.clearEntireScreen(); setMode(Mode::AppScreen); break; //XTERM
     case TY_CSI_PR('l', 1049) : resetMode(Mode::AppScreen); restoreCursor(); break; //XTERM
 
     case TY_CSI_PR('h', 2004) : /*         setMode      (Mode::BracketedPaste); */ break; //XTERM
