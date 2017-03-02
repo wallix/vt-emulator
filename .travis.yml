@@ -29,10 +29,10 @@ matrix:
 
     # GCC 6
     - os: linux
-     env: COMPILER=gcc-6
-     compiler: gcc
-     before_script:
-       - "echo -e 'using gcc : : g++-6 : <cxxflags>-fdiagnostics-color=always ;' > ~/user-config.jam"
+      env: COMPILER=gcc-6
+      compiler: gcc
+      before_script:
+        - "echo -e 'using gcc : : g++-6 : <cxxflags>-fdiagnostics-color=always ;' > ~/user-config.jam"
 
     # Clang 3.6
     - os: linux
