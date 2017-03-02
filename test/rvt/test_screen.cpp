@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(TestScreenInsert)
         int ncolumns = screen.getColumns();
         std::string s(nlines * (ncolumns + 2 + 1), '?');
         auto p = s.begin();
-        auto & screen_lines = screen.getScreenLines();
+        auto screen_lines = screen.getScreenLines();
         for (int i{}; i < nlines; ++i) {
             auto & lines = screen_lines[i];
             *p++ = '[';

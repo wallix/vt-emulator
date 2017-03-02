@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(TestEmulator)
     rvt::Screen const & screen = emulator.getCurrentScreen();
     auto const & lines = screen.getScreenLines();
 
-    BOOST_REQUIRE_EQUAL(lines.size(), 8);
+    BOOST_REQUIRE_EQUAL(lines.size(), 7);
 
     rvt::Character a_ch('a');
     rvt::Character b_ch('b');

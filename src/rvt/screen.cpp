@@ -48,7 +48,7 @@ const Character Screen::DefaultChar = Character(' ',
                                       Rendition::Default,
                                       false);
 
-Screen::Screen(int lines, int columns):
+Screen::Screen(strictly_positif lines, strictly_positif columns):
     _lines(lines),
     _columns(columns),
     _screenLines(_lines + 1),
@@ -62,8 +62,6 @@ Screen::Screen(int lines, int columns):
     _effectiveRendition(Rendition::Default),
     _lastPos(-1)
 {
-    assert(lines >= 0);
-    assert(columns >= 0);
     _lineProperties.resize(_lines + 1, LineProperty::Default);
 
     initTabStops();
@@ -278,7 +276,7 @@ void Screen::restoreCursor()
     updateEffectiveRendition();
 }
 
-void Screen::resizeImage(int new_lines, int new_columns)
+void Screen::resizeImage(strictly_positif new_lines, strictly_positif new_columns)
 {
     if ((new_lines == _lines) && (new_columns == _columns)) return;
 
@@ -292,8 +290,11 @@ void Screen::resizeImage(int new_lines, int new_columns)
 
     // create new screen _lines and copy from old to new
     _screenLines.resize(new_lines + 1);
-    for (int i = _lines; (i > 0) && (i < new_lines + 1); i++)
-        _screenLines[i].resize(new_columns); // TODO + max konsole_wcwidth - 1
+    for (auto & line : _screenLines) {
+        if (line.size() > std::size_t(new_columns)) {
+            line.resize(new_columns); // TODO + max konsole_wcwidth - 1
+        }
+    }
     _lineProperties.resize(new_lines + 1, LineProperty::Default);
 
     _lines = new_lines;
@@ -660,7 +661,7 @@ void Screen::displayCharacter(ucs4_char c)
             new_table.resize(_lines * _columns);
             auto b = new_table.begin();
             auto p = b;
-            for (auto & line : _screenLines) {
+            for (auto & line : getMutableScreenLines()) {
                 for (Character & ch : line) {
                     if (ch.is_extended()) {
                         ch.character = p - b;
@@ -818,10 +819,10 @@ void Screen::clearImage(int loca, int loce, char c)
         std::vector<Character>& line = _screenLines[y];
 
         if (isDefaultCh && endCol == _columns - 1) {
-            line.resize(startCol);
+            line.resize(startCol/*, clearCh*/);
         } else {
             if (line.size() < std::size_t(endCol + 1))
-                line.resize(endCol + 1);
+                line.resize(endCol + 1/*, clearCh*/);
 
             Character* data = line.data();
             for (int i = startCol; i <= endCol; i++)
@@ -873,12 +874,10 @@ void Screen::clearToBeginOfScreen()
 
 void Screen::clearEntireScreen()
 {
-    // Add entire screen to history
-    for (int i = 0; i < (_lines - 1); i++) {
-        scrollUp(0, 1);
+    std::fill(_lineProperties.begin(), _lineProperties.end(), LineProperty::Default);
+    for (auto & v : getMutableScreenLines()) {
+        v.resize(0);
     }
-
-    clearImage(loc(0, 0), loc(_columns - 1, _lines - 1), ' ');
 }
 
 /*! fill screen with 'E'
@@ -887,7 +886,12 @@ void Screen::clearEntireScreen()
 
 void Screen::helpAlign()
 {
-    clearImage(loc(0, 0), loc(_columns - 1, _lines - 1), 'E');
+    std::fill(_lineProperties.begin(), _lineProperties.end(), LineProperty::Default);
+    Character clearCh('E');
+    for (auto & v : getMutableScreenLines()) {
+        std::fill(v.begin(), v.end(), clearCh);
+        v.resize(_columns, clearCh);
+    }
 }
 
 void Screen::clearToEndOfLine()
