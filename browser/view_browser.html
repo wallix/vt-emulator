@@ -26,8 +26,8 @@ var ajax_param = {
     dataType: 'json'
 };
 
-var time = document.location.search.replace(/[^0-9]/g, '')*1000 || 3000;
 
+var time = document.location.search.replace(/[^0-9.]/g, '')*1000 || 3000;
 (function loop() {
     $.ajax(ajax_param)
     .done(function(screen){
