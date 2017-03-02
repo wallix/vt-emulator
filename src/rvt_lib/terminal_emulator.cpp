@@ -223,6 +223,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write(
     TerminalEmulator * emu, OutputFormat format, char const * filename, int mode
 ) noexcept {
     return_if(!emu);
+    return_if(!filename);
 
     std::string & out = emu->str;
     return_if_neg(build_format_string(*emu, format, out));
@@ -250,6 +251,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
     int mode
 ) noexcept {
     return_if(!emu);
+    return_if(!filename);
 
     std::string & out = emu->str;
     return_if_neg(build_format_string(*emu, format, out));
