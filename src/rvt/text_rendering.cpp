@@ -142,7 +142,10 @@ std::string json_rendering(
     constexpr std::size_t max_size_by_loop = 111; // approximate
 
     Buf buf;
-    buf.s += std::sprintf(buf.s, R"({"lines":%d,"columns":%d,"title":")", screen.getLines(), screen.getColumns());
+    buf.s += std::sprintf(
+        buf.s, R"({"lines":%d,"columns":%d,"x":%d,"y":%d,"title":")",
+        screen.getLines(), screen.getColumns(), screen.cursorX(), screen.cursorY()
+    );
     buf.push_ucs_array(title, max_size_by_loop, out);
     buf.s += std::sprintf(buf.s, R"(","style":{"r":0,"f":%d,"b":%d},"data":[)", color2int(palette[0]), color2int(palette[1]));
 
@@ -251,7 +254,7 @@ std::string ansi_rendering(
         if (buf.remaining() >= max_size_by_loop) {
             buf.flush(out);
         }
-        
+
         for (rvt::Character const & ch : line) {
             if (buf.remaining() >= max_size_by_loop) {
                 buf.flush(out);

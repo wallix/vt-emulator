@@ -18,6 +18,10 @@ var elem2style = function(e)
     return style
 }
 
+var escaped = function(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+}
+
 return function(screen)
 {
     var estyle = screen.style;
@@ -28,25 +32,38 @@ return function(screen)
     }
 
     var terminal = '';
-    for (var lines of screen.data) {
+    var data = screen.data;
+    //console.log(screen.x,screen.y)
+    for (var ilines in data) {
         var htmlline = ''
-        for (var line of lines) {
-            //var sz_s = 0;
-            for (var e of line) {
+        var lines = data[ilines]
+        for (var iline in lines) {
+            var line_len = 0
+            var line = lines[iline]
+            var is_cursor_y = (ilines == screen.y)
+            for (var ie in line) {
+                var e = line[ie]
                 //console.log(e)
                 if (e.r !== undefined) estyle.r = e.r;
                 if (e.f !== undefined) estyle.f = e.f;
                 if (e.b !== undefined) estyle.b = e.b;
-                htmlline += '<span style="' + elem2style(estyle) + '">' +
-                    (e.s ? e.s.replace(/&/g, '&amp;').replace(/</g, '&lt;') : '') +
-                    '</span>'
-                //sz_s += e.s ? e.s.length : 0
+
+                var span_style = '<span style="' + elem2style(estyle) + '">'
+                var s = e.s || ''
+                if (is_cursor_y && line_len <= screen.x && screen.x <= s.length + line_len) {
+                    var curstyle = {r: estyle.r, f: estyle.b, b: estyle.f}
+                    var span_style = '<span style="' + elem2style(estyle) + '">'
+                    var span_cur_style = '<span style="' + elem2style(curstyle) + '">'
+                    var pcur = screen.x - line_len;
+                    htmlline += span_style + escaped(s.substr(0, pcur)) + '</span>' +
+                        span_cur_style + escaped(s.substr(pcur, 1)) + '</span>' +
+                        span_style + escaped(s.substr(pcur + 1)) + '</span>'
+                }
+                else {
+                    htmlline += span_style + escaped(s) + '</span>'
+                }
+                line_len += s.length
             }
-            //if (sz_s && sz_s < screen.columns) {
-            //    htmlline += '<span style="' + elem2style({'f':estyle.f,'b':estyle.b}) + '">' +
-            //        empty_line.substr(0, screen.columns - sz_s) +
-            //        '</span>'
-            //}
         }
         terminal += '<p>' + htmlline + '\n</p>';
     }
