@@ -624,6 +624,9 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     case TY_CSI_PR('h',   3) :          setMode      (Mode::Columns132); break; //VT100
     case TY_CSI_PR('l',   3) :        resetMode      (Mode::Columns132); break; //VT100
 
+    case TY_CSI_PR('h',   4) : /* Enter Scrolling Mode (DECSCLM) */ break; //VT100
+    case TY_CSI_PR('l',   4) : /* Ecit  Scrolling Mode (DECSCLM) */ break; //VT100
+
     case TY_CSI_PR('h',   5) : _currentScreen->    setMode      (ScreenMode::Screen   ); break; //VT100
     case TY_CSI_PR('l',   5) : _currentScreen->  resetMode      (ScreenMode::Screen   ); break; //VT100
 
