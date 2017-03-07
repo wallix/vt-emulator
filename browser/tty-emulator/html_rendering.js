@@ -24,7 +24,7 @@ var escaped = function(s) {
 
 return function(screen)
 {
-    var estyle = screen.style;
+    var estyle = {r: screen.style.r, f: screen.style.f, b: screen.style.b};
 
     var empty_line = '                                                               '
     while (empty_line.length < screen.columns) {
