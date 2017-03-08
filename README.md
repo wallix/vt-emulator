@@ -40,3 +40,17 @@ With Wallix packager (https://github.com/wallix/packager).
 `$ $PACKAGER_PROJECT/packager.py --version 1.0 --no-entry-changelog`
 
 `$ dpkg-buildpackage -I.git -Ibin -uc -us`
+
+
+# Links
+
+- http://vt100.net/docs/vt100-ug/chapter3.html
+- http://vt100.net/docs/tp83/appendixb.html
+- http://man7.org/linux/man-pages/man4/console_codes.4.html
+- http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+
+
+# similar project
+
+- https://github.com/selectel/pyte
+- https://github.com/JulienPalard/vt100-emulator

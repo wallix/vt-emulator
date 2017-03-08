@@ -108,6 +108,10 @@ void VtEmulator::reset()
    - CSI_PS     - Escape codes of the form <ESC>'['     {Pn} ';' ...  C
    - CSI_PR     - Escape codes of the form <ESC>'[' '?' {Pn} ';' ...  C
    - CSI_PE     - Escape codes of the form <ESC>'[' '!' {Pn} ';' ...  C
+   - CSI_PG     - Escape codes of the form <ESC>'[' '>' {Pn} ';' ...  C
+   - DCS        - Escape codes of the form <ESC>'P'              ... '\' (IGNORED)
+   - DCS        - Escape codes of the form <ESC>'^'              ... '\' (IGNORED)
+   - DCS        - Escape codes of the form <ESC>'_'              ... '\' (IGNORED)
    - VT52       - VT52 escape codes
                   - <ESC><Chr>
                   - <ESC>'Y'{Pc}{Pc}
@@ -248,105 +252,116 @@ const int DEL = 127;
 // process an incoming unicode character
 void VtEmulator::receiveChar(ucs4_char cc)
 {
-  if (cc == DEL)
-    return; //VT100: ignore.
+    if (cc == DEL)
+        return; //VT100: ignore.
 
-  if (ces(CTL))
-  {
-    // DEC HACK ALERT! Control Characters are allowed *within* esc sequences in VT100
-    // This means, they do neither a resetTokenizer() nor a pushToToken(). Some of them, do
-    // of course. Guess this originates from a weakly layered handling of the X-on
-    // X-off protocol, which comes really below this level.
-    if (cc == CNTL('X') || cc == CNTL('Z') || cc == ESC)
-        resetTokenizer(); //VT100: CAN or SUB
-    if (cc != ESC)
-    {
-        processToken(TY_CTL(cc+'@' ),0,0);
-        return;
-    }
-  }
-  // advance the state
-  addToCurrentToken(cc);
-
-  ucs4_char * s = tokenBuffer;
-  const int  p = tokenBufferPos;
-
-  if (getMode(Mode::Ansi))
-  {
-    if (lec(1,0,ESC)) { return; }
-    if (lec(1,0,ESC+128)) { s[0] = ESC; receiveChar('['); return; }
-    if (les(2,1,GRP)) { return; }
-    if (Xte         ) { processWindowAttributeRequest(); resetTokenizer(); return; }
-    if (Xpe         ) { return; }
-    if (lec(3,2,'?')) { return; }
-    if (lec(3,2,'>')) { return; }
-    if (lec(3,2,'!')) { return; }
-    if (lun(       )) { processToken( TY_CHR(), applyCharset(cc), 0);   resetTokenizer(); return; }
-    if (lec(2,0,ESC)) { processToken( TY_ESC(s[1]), 0, 0);              resetTokenizer(); return; }
-    if (les(3,1,SCS)) { processToken( TY_ESC_CS(s[1],s[2]), 0, 0);      resetTokenizer(); return; }
-    if (lec(3,1,'#')) { processToken( TY_ESC_DE(s[2]), 0, 0);           resetTokenizer(); return; }
-    if (eps(    CPN)) { processToken( TY_CSI_PN(cc), argv[0], argv[1]);  resetTokenizer(); return; }
-
-    // resize = \e[8;<row>;<col>t
-    if (eps(CPS))
-    {
-        processToken( TY_CSI_PS(cc, argv[0]), argv[1], argv[2]);
-        resetTokenizer();
-        return;
-    }
-
-    if (epe(   )) { processToken( TY_CSI_PE(cc), 0, 0); resetTokenizer(); return; }
-    if (ees(DIG)) { addDigit(cc-'0'); return; }
-    if (eec(';')) { addArgument();    return; }
-    for (int i = 0; i <= argc; i++)
-    {
-        if (epp())
-            processToken(TY_CSI_PR(cc,argv[i]), 0, 0);
-        else if (egt())
-            processToken(TY_CSI_PG(cc), 0, 0); // spec. case for ESC]>0c or ESC]>c
-        else if (cc == 'm' && argc - i >= 4 && (argv[i] == 38 || argv[i] == 48) && argv[i+1] == 2)
-        {
-            // ESC[ ... 48;2;<red>;<green>;<blue> ... m -or- ESC[ ... 38;2;<red>;<green>;<blue> ... m
-            i += 2;
-            processToken(TY_CSI_PS(cc, argv[i-2]), static_cast<int>(ColorSpace::RGB), (argv[i] << 16) | (argv[i+1] << 8) | argv[i+2]);
-            i += 2;
+    // DCS, PM, APC  (IGNORED) XTerm
+    if (tokenBufferPos == 2 && (tokenBuffer[1] == 'P' || tokenBuffer[1] =='^' || tokenBuffer[1] == '_')) {
+        if (cc == '\\') {
+            resetTokenizer();
         }
-        else if (cc == 'm' && argc - i >= 2 && (argv[i] == 38 || argv[i] == 48) && argv[i+1] == 5)
+        return ;
+    }
+
+    if (ces(CTL))
+    {
+        // DEC HACK ALERT! Control Characters are allowed *within* esc sequences in VT100
+        // This means, they do neither a resetTokenizer() nor a pushToToken(). Some of them, do
+        // of course. Guess this originates from a weakly layered handling of the X-on
+        // X-off protocol, which comes really below this level.
+        if (cc == CNTL('X') || cc == CNTL('Z') || cc == ESC)
+            resetTokenizer(); //VT100: CAN or SUB
+        if (cc != ESC)
         {
-            // ESC[ ... 48;5;<index> ... m -or- ESC[ ... 38;5;<index> ... m
-            i += 2;
-            processToken(TY_CSI_PS(cc, argv[i-2]), static_cast<int>(ColorSpace::Index256), argv[i]);
+            processToken(TY_CTL(cc+'@' ),0,0);
+            return;
         }
-        else
-            processToken(TY_CSI_PS(cc,argv[i]), 0, 0);
     }
-    resetTokenizer();
-  }
-  else
-  {
-    // VT52 Mode
-    if (lec(1,0,ESC))
-        return;
-    if (les(1,0,CHR))
+    // advance the state
+    addToCurrentToken(cc);
+
+    ucs4_char * s = tokenBuffer;
+    const int  p = tokenBufferPos;
+
+    if (getMode(Mode::Ansi))
     {
-        processToken( TY_CHR(), s[0], 0);
+        if (lec(1,0,ESC)) { return; }
+        if (lec(1,0,ESC+128)) { s[0] = ESC; receiveChar('['); return; }
+        if (les(2,1,GRP)) { return; }
+        if (Xte         ) { processWindowAttributeRequest(); resetTokenizer(); return; }
+        if (Xpe         ) { return; }
+        if (lec(2,1,'P')) { return; }
+        if (lec(2,1,'^')) { return; }
+        if (lec(2,1,'_')) { return; }
+        if (lec(3,2,'?')) { return; }
+        if (lec(3,2,'>')) { return; }
+        if (lec(3,2,'!')) { return; }
+        if (lun(       )) { processToken( TY_CHR(), applyCharset(cc), 0);   resetTokenizer(); return; }
+        if (lec(2,0,ESC)) { processToken( TY_ESC(s[1]), 0, 0);              resetTokenizer(); return; }
+        if (les(3,1,SCS)) { processToken( TY_ESC_CS(s[1],s[2]), 0, 0);      resetTokenizer(); return; }
+        if (lec(3,1,'#')) { processToken( TY_ESC_DE(s[2]), 0, 0);           resetTokenizer(); return; }
+        if (eps(    CPN)) { processToken( TY_CSI_PN(cc), argv[0], argv[1]); resetTokenizer(); return; }
+
+        // resize = \e[8;<row>;<col>t
+        if (eps(CPS))
+        {
+            processToken( TY_CSI_PS(cc, argv[0]), argv[1], argv[2]);
+            resetTokenizer();
+            return;
+        }
+
+        if (epe(   )) { processToken( TY_CSI_PE(cc), 0, 0); resetTokenizer(); return; }
+        if (ees(DIG)) { addDigit(cc-'0'); return; }
+        if (eec(';')) { addArgument();    return; }
+        for (int i = 0; i <= argc; i++)
+        {
+            if (epp())
+                processToken(TY_CSI_PR(cc,argv[i]), 0, 0);
+            else if (egt())
+                processToken(TY_CSI_PG(cc), 0, 0); // spec. case for ESC]>0c or ESC]>c
+            else if (cc == 'm' && argc - i >= 4 && (argv[i] == 38 || argv[i] == 48) && argv[i+1] == 2)
+            {
+                // ESC[ ... 48;2;<red>;<green>;<blue> ... m -or- ESC[ ... 38;2;<red>;<green>;<blue> ... m
+                i += 2;
+                processToken(TY_CSI_PS(cc, argv[i-2]), static_cast<int>(ColorSpace::RGB), (argv[i] << 16) | (argv[i+1] << 8) | argv[i+2]);
+                i += 2;
+            }
+            else if (cc == 'm' && argc - i >= 2 && (argv[i] == 38 || argv[i] == 48) && argv[i+1] == 5)
+            {
+                // ESC[ ... 48;5;<index> ... m -or- ESC[ ... 38;5;<index> ... m
+                i += 2;
+                processToken(TY_CSI_PS(cc, argv[i-2]), static_cast<int>(ColorSpace::Index256), argv[i]);
+            }
+            else
+                processToken(TY_CSI_PS(cc,argv[i]), 0, 0);
+        }
+        resetTokenizer();
+    }
+    else
+    {
+        // VT52 Mode
+        if (lec(1,0,ESC))
+            return;
+        if (les(1,0,CHR))
+        {
+            processToken( TY_CHR(), s[0], 0);
+            resetTokenizer();
+            return;
+        }
+        if (lec(2,1,'Y'))
+            return;
+        if (lec(3,1,'Y'))
+            return;
+        if (p < 4)
+        {
+            processToken(TY_VT52(s[1] ), 0, 0);
+            resetTokenizer();
+            return;
+        }
+        processToken(TY_VT52(s[1]), s[2], s[3]);
         resetTokenizer();
         return;
     }
-    if (lec(2,1,'Y'))
-        return;
-    if (lec(3,1,'Y'))
-        return;
-    if (p < 4)
-    {
-        processToken(TY_VT52(s[1] ), 0, 0);
-        resetTokenizer();
-        return;
-    }
-    processToken(TY_VT52(s[1]), s[2], s[3]);
-    resetTokenizer();
-    return;
-  }
 }
 
 void VtEmulator::processWindowAttributeRequest()
@@ -450,10 +465,26 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     case TY_ESC('M'      ) : _currentScreen->reverseIndex         (          ); break; //VT100
     case TY_ESC('c'      ) :      reset                (          ); break;
 
+    case TY_ESC('l'      ) : /* IGNORED: Memory Lock.  Locks memory above the cursor.       */ break; //HP
+    case TY_ESC('m'      ) : /* IGNORED: Memory Unlock.                                     */ break; //HP
+    case TY_ESC('|'      ) : /* TODO Invoke the G3 Character Set as GL (LS3R).              */ break; //XTerm
+    case TY_ESC('}'      ) : /* TODO Invoke the G2 Character Set as GL (LS2R).              */ break; //XTerm
+    case TY_ESC('~'      ) : /* TODO Invoke the G1 Character Set as GL (LS1R).              */ break; //XTerm
+    case TY_ESC('F'      ) : /* IGNORED: Cursor to lower left corner of screen              */ break; //XTerm
+    case TY_ESC('N'      ) : /* TODO set G2.  This affects next character only.             */ break; //XTerm
+    case TY_ESC('O'      ) : /* TODO set G3.  This affects next character only.             */ break; //XTerm
+
+    //case TY_ESC('P'      ) : /* IGNORED: Device Control String (DCS).                     */ break; //XTerm
+    //case TY_ESC('^'      ) : /* IGNORED: Privacy Message (PM).                            */ break; //XTerm
+    //case TY_ESC('_'      ) : /* IGNORED: Application Program Command (APC).               */ break; //XTerm
+    //case TY_ESC('\\'     ) : /* IGNORED: String Terminator.                               */ break; //XTerm
+
     case TY_ESC('n'      ) :      useCharset           (         2); break;
     case TY_ESC('o'      ) :      useCharset           (         3); break;
     case TY_ESC('7'      ) :      saveCursor           (          ); break;
     case TY_ESC('8'      ) :      restoreCursor        (          ); break;
+    case TY_ESC('6'      ) : /* TODO    Back Index (DECBI)        */ break; //VT420
+    case TY_ESC('9'      ) : /* TODO Forward Index (DECFI)        */ break; //VT420
 
     case TY_ESC('='      ) : /* Enter alternate keypad mode */ break;
     case TY_ESC('>'      ) : /* Exit  alternate keypad mode */ break;
@@ -482,6 +513,24 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     case TY_ESC_CS('+', 'B') :      setCharset           (3, char_to_charset_id('B')); break; //VT100
     case TY_ESC_CS('+', 'U') :      setCharset           (3, char_to_charset_id('U')); break; //Linux
     case TY_ESC_CS('+', 'K') :      setCharset           (3, char_to_charset_id('K')); break; //Linux
+
+    // case TY_ESC_CS('-', '0') :      setCharset           (3, char_to_charset_id('0')); break; //VT300
+    // case TY_ESC_CS('-', 'A') :      setCharset           (3, char_to_charset_id('A')); break; //VT300
+    // case TY_ESC_CS('-', 'B') :      setCharset           (3, char_to_charset_id('B')); break; //VT300
+    // case TY_ESC_CS('-', 'U') :      setCharset           (3, char_to_charset_id('U')); break; //VT300
+    // case TY_ESC_CS('-', 'K') :      setCharset           (3, char_to_charset_id('K')); break; //VT300
+    //
+    // case TY_ESC_CS('.', '0') :      setCharset           (3, char_to_charset_id('0')); break; //VT300
+    // case TY_ESC_CS('.', 'A') :      setCharset           (3, char_to_charset_id('A')); break; //VT300
+    // case TY_ESC_CS('.', 'B') :      setCharset           (3, char_to_charset_id('B')); break; //VT300
+    // case TY_ESC_CS('.', 'U') :      setCharset           (3, char_to_charset_id('U')); break; //VT300
+    // case TY_ESC_CS('.', 'K') :      setCharset           (3, char_to_charset_id('K')); break; //VT300
+    //
+    // case TY_ESC_CS('/', '0') :      setCharset           (3, char_to_charset_id('0')); break; //VT300
+    // case TY_ESC_CS('/', 'A') :      setCharset           (3, char_to_charset_id('A')); break; //VT300
+    // case TY_ESC_CS('/', 'B') :      setCharset           (3, char_to_charset_id('B')); break; //VT300
+    // case TY_ESC_CS('/', 'U') :      setCharset           (3, char_to_charset_id('U')); break; //VT300
+    // case TY_ESC_CS('/', 'K') :      setCharset           (3, char_to_charset_id('K')); break; //VT300
 
     case TY_ESC_CS('%', 'G') :      /* TODO setCodec             (Utf8Codec   );*/ break; //LINUX
     case TY_ESC_CS('%', '@') :      /* TODO setCodec             (LocaleCodec );*/ break; //LINUX
@@ -521,7 +570,7 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     case TY_CSI_PS('g',   3) : _currentScreen->clearTabStops        (          ); break; //VT100
     case TY_CSI_PS('h',   4) : _currentScreen->    setMode      (ScreenMode::Insert   ); break;
     case TY_CSI_PS('h',  20) :          setMode      (ScreenMode::NewLine  ); break;
-    case TY_CSI_PS('i',   0) : /* IGNORE: attached printer          */ break; //VT100
+    case TY_CSI_PS('i',   0) : /* IGNORED: attached printer          */ break; //VT100
     case TY_CSI_PS('l',   4) : _currentScreen->  resetMode      (ScreenMode::Insert   ); break;
     case TY_CSI_PS('l',  20) :        resetMode      (ScreenMode::NewLine  ); break;
     case TY_CSI_PS('s',   0) :      saveCursor           (          ); break;
@@ -770,6 +819,10 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     case TY_VT52('<'      ) :          setMode      (Mode::Ansi     ); break; //VT52
     case TY_VT52('='      ) : /* Enter alternate keypad mode */ break; //VT52
     case TY_VT52('>'      ) : /* Exit  alternate keypad mode */ break; //VT52
+
+    case TY_CSI_PG('c'    ) : /* IGNORED: Send Device Attributes                        */break; //VT100
+    case TY_CSI_PG('t'    ) : /* IGNORED: Set one or more features of the title modes.  */break; //XTerm
+    case TY_CSI_PG('p'    ) : /* IGNORED: Set resource value pointerMode.               */break; //XTerm
 
     default:
         reportDecodingError();
