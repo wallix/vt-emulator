@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
 
     char const * filename = "/tmp/termemu-test.json";
 
-    char const * contents = R"xxx({"lines":3,"columns":10,"x":3,"y":0,"title":"Lib test","style":{"r":0,"f":15658734,"b":3355443},"data":[[[{"s":"ABC"}]],[[{}]],[[{}]]]})xxx";
+    char const * contents = R"xxx({"lines":3,"columns":10,"x":3,"y":0,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"ABC"}]],[[{}]],[[{}]]]})xxx";
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_write_integrity(emu, OutputFormat::json, filename, filename, 0664));
     BOOST_CHECK_EQUAL(contents, get_file_contents(filename));
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_resize(emu, 2, 2));
 
-    contents = R"xxx({"lines":2,"columns":2,"x":1,"y":0,"title":"Lib test","style":{"r":0,"f":15658734,"b":3355443},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
+    contents = R"xxx({"lines":2,"columns":2,"x":1,"y":0,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_write_in_buffer(emu, OutputFormat::json));
     BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_buffer_size(emu));

@@ -81,7 +81,7 @@ static int build_format_string(TerminalEmulator & emu, OutputFormat format, std:
             out = rvt::Format##_rendering(       \
                 emu.emulator.getWindowTitle(),   \
                 emu.emulator.getCurrentScreen(), \
-                rvt::color_table                 \
+                rvt::xterm_color_table           \
             ); break
         switch (format) {
             call_rendering(json);
