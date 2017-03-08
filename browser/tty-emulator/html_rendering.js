@@ -69,7 +69,9 @@ return function(screen)
     }
 
     return '<p id="tty-player-title">' + (screen.title||'') + '</p>'+
-        '<div id="tty-player-terminal">' +
+        '<div id="tty-player-terminal" style="color:' +
+            i2strcolor(screen.style.f) + ';background-color:' +
+            i2strcolor(screen.style.b) + '">' +
             terminal +
             // force terminal width
             '<p style="height:1px">' + empty_line.substr(0, screen.columns) + '</p>' +
