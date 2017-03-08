@@ -54,18 +54,23 @@ BOOST_AUTO_TEST_CASE(TestCharacterColor)
         rvt::Color(0x18, 0xB2, 0xB2), // Cyan
         rvt::Color(0xB2, 0xB2, 0xB2), // White
         // intensive versions
-        rvt::Color(0x00, 0x00, 0x00),
-        rvt::Color(0xFF, 0xFF, 0xFF),
-        rvt::Color(0x68, 0x68, 0x68),
-        rvt::Color(0xFF, 0x54, 0x54),
-        rvt::Color(0x54, 0xFF, 0x54),
-        rvt::Color(0xFF, 0xFF, 0x54),
-        rvt::Color(0x54, 0x54, 0xFF),
-        rvt::Color(0xFF, 0x54, 0xFF),
-        rvt::Color(0x54, 0xFF, 0xFF),
-        rvt::Color(0xFF, 0xFF, 0xFF),
+        rvt::Color(0x00, 0x00, 0x00), // Dfore
+        rvt::Color(0xFF, 0xFF, 0xFF), // Dback
+        rvt::Color(0x68, 0x68, 0x68), // Black
+        rvt::Color(0xFF, 0x54, 0x54), // Red
+        rvt::Color(0x54, 0xFF, 0x54), // Green
+        rvt::Color(0xFF, 0xFF, 0x54), // Yellow
+        rvt::Color(0x54, 0x54, 0xFF), // Blue
+        rvt::Color(0xFF, 0x54, 0xFF), // Magenta
+        rvt::Color(0x54, 0xFF, 0xFF), // Cyan
+        rvt::Color(0xFF, 0xFF, 0xFF), // White
     };
-    static_assert(rvt::TABLE_COLORS == sizeof(color_table)/sizeof(color_table[0]), "");
+
+    auto to_dim = [](rvt::Color const & color){
+        return rvt::Color(color.red() *2/3, color.green() *2/3, color.blue() *2/3);
+    };
+
+    BOOST_CHECK_EQUAL(rvt::Color(12, 0, 1), to_dim(rvt::Color(18, 1, 2)));
 
     rvt::Color black = {0x00, 0x00, 0x00};
     rvt::Color white = {0xFF, 0xFF, 0xFF};
@@ -86,12 +91,16 @@ BOOST_AUTO_TEST_CASE(TestCharacterColor)
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[0]);
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[0+10]);
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[0+10]));
 
     color = rvt::CharacterColor(rvt::ColorSpace::Default, 1);
     BOOST_CHECK_EQUAL(color.isValid(), true);
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[1]);
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[1+10]);
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[1+10]));
 
 
     color = rvt::CharacterColor(rvt::ColorSpace::System, 0);
@@ -99,18 +108,24 @@ BOOST_AUTO_TEST_CASE(TestCharacterColor)
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+0]);
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+0+10]);
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[2+0+10]));
 
     color = rvt::CharacterColor(rvt::ColorSpace::System, 1);
     BOOST_CHECK_EQUAL(color.isValid(), true);
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+1]);
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+1+10]);
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[2+1+10]));
 
     color = rvt::CharacterColor(rvt::ColorSpace::System, 7);
     BOOST_CHECK_EQUAL(color.isValid(), true);
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+7]);
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+7+10]);
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[2+7+10]));
 
 
     color = rvt::CharacterColor(rvt::ColorSpace::Index256, 3);
@@ -118,24 +133,32 @@ BOOST_AUTO_TEST_CASE(TestCharacterColor)
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+3]);
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+3]);
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[2+3]));
 
     color = rvt::CharacterColor(rvt::ColorSpace::Index256, 15);
     BOOST_CHECK_EQUAL(color.isValid(), true);
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+7+10]);
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+7+10]);
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[2+7+10]));
 
     color = rvt::CharacterColor(rvt::ColorSpace::Index256, 200);
     BOOST_CHECK_EQUAL(color.isValid(), true);
     BOOST_CHECK_EQUAL(color.color(color_table), rvt::Color(0xff, 0, 0xd7));
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), rvt::Color(0xff, 0, 0xd7));
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(rvt::Color(0xff, 0, 0xd7)));
 
     color = rvt::CharacterColor(rvt::ColorSpace::Index256, 236);
     BOOST_CHECK_EQUAL(color.isValid(), true);
     BOOST_CHECK_EQUAL(color.color(color_table), rvt::Color(0x30, 0x30, 0x30));
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), rvt::Color(0x30, 0x30, 0x30));
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(rvt::Color(0x30, 0x30, 0x30)));
 
 
     color = rvt::CharacterColor(rvt::ColorSpace::RGB, 0x123456);
@@ -143,4 +166,6 @@ BOOST_AUTO_TEST_CASE(TestCharacterColor)
     BOOST_CHECK_EQUAL(color.color(color_table), rvt::Color(0x12, 0x34, 0x56));
     color.setIntensive();
     BOOST_CHECK_EQUAL(color.color(color_table), rvt::Color(0x12, 0x34, 0x56));
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(rvt::Color(0x12, 0x34, 0x56)));
 }

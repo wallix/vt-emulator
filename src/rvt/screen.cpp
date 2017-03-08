@@ -370,6 +370,8 @@ void Screen::updateEffectiveRendition()
 
     if (bool(_currentRendition & Rendition::Bold))
         _effectiveForeground.setIntensive();
+    if (bool(_currentRendition & Rendition::Dim))
+        _effectiveForeground.setDim();
 }
 
 void Screen::reset(bool clearScreen)
@@ -925,7 +927,7 @@ void Screen::setDefaultRendition()
 {
     setForeColor(ColorSpace::Default, DEFAULT_FORE_COLOR);
     setBackColor(ColorSpace::Default, DEFAULT_BACK_COLOR);
-    _currentRendition   = Rendition::Default;
+    _currentRendition = Rendition::Default;
     updateEffectiveRendition();
 }
 

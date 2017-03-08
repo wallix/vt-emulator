@@ -60,11 +60,11 @@ constexpr int DEFAULT_BACK_COLOR = 1;
 
 enum class ColorSpace : uint8_t
 {
-    Undefined   = 0,
-    Default     = 1,
-    System      = 2,
-    Index256    = 3,
-    RGB         = 4,
+    Undefined,
+    Default,
+    System,
+    Index256,
+    RGB,
 };
 
 constexpr std::array<Color, TABLE_COLORS>
@@ -210,6 +210,11 @@ public:
     void setIntensive();
 
     /**
+     * Set this color as an dim color.
+     */
+    void setDim();
+
+    /**
      * Returns the color within the specified color @p palette
      *
      * The @p palette is only used if this color is one of the 16 system colors, otherwise
@@ -231,6 +236,8 @@ public:
 private:
     ColorSpace _colorSpace;
 
+    static const uint8_t _colorSpaceDimFlag = 0x8;
+
     // bytes storing the character color
     uint8_t _u = 0;
     uint8_t _v = 0;
@@ -250,7 +257,7 @@ inline bool operator != (const CharacterColor& a, const CharacterColor& b)
     return !operator==(a, b);
 }
 
-inline const Color color256(uint8_t u, fixed_array_view<const Color, TABLE_COLORS> base)
+inline Color color256(uint8_t u, fixed_array_view<const Color, TABLE_COLORS> base)
 {
     REDEMPTION_DIAGNOSTIC_PUSH
     REDEMPTION_DIAGNOSTIC_GCC_IGNORE("-Wconversion")
@@ -281,22 +288,31 @@ inline const Color color256(uint8_t u, fixed_array_view<const Color, TABLE_COLOR
 
 inline Color CharacterColor::color(fixed_array_view<const Color, TABLE_COLORS> base) const
 {
-    switch (_colorSpace) {
-    case ColorSpace::Default:
-        return base[_u + 0 + (_v ? BASE_COLORS : 0)];
-    case ColorSpace::System:
-        return base[_u + 2 + (_v ? BASE_COLORS : 0)];
-    case ColorSpace::Index256:
-        return color256(_u, base);
-    case ColorSpace::RGB:
-        return Color(_u, _v, _w);
-    case ColorSpace::Undefined:
+    Color const color = [this, &base]{
+        switch (static_cast<ColorSpace>(static_cast<uint8_t>(_colorSpace) & ~_colorSpaceDimFlag)) {
+        case ColorSpace::Default:
+            return base[_u + 0 + (_v ? BASE_COLORS : 0)];
+        case ColorSpace::System:
+            return base[_u + 2 + (_v ? BASE_COLORS : 0)];
+        case ColorSpace::Index256:
+            return color256(_u, base);
+        case ColorSpace::RGB:
+            return Color(_u, _v, _w);
+        case ColorSpace::Undefined:
+            return Color();
+        }
+
+        assert(false); // invalid color space
+
         return Color();
-    }
+    }();
 
-    assert(false); // invalid color space
-
-    return Color();
+    return bool(static_cast<uint8_t>(_colorSpace) & _colorSpaceDimFlag)
+    ? Color(
+        color.red()   * 2 / 3,
+        color.green() * 2 / 3,
+        color.blue()  * 2 / 3
+    ) : color;
 }
 
 inline void CharacterColor::setIntensive()
@@ -304,6 +320,11 @@ inline void CharacterColor::setIntensive()
     if (_colorSpace == ColorSpace::System || _colorSpace == ColorSpace::Default) {
         _v = 1;
     }
+}
+
+inline void CharacterColor::setDim()
+{
+    _colorSpace = static_cast<ColorSpace>(static_cast<uint8_t>(_colorSpace) | _colorSpaceDimFlag);
 }
 
 }

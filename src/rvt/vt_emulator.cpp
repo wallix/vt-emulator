@@ -528,19 +528,23 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     case TY_CSI_PS('u',   0) :      restoreCursor        (          ); break;
 
     case TY_CSI_PS('m',   0) : _currentScreen->setDefaultRendition  (          ); break;
-    case TY_CSI_PS('m',   1) : _currentScreen->  setRendition     (Rendition::Bold     ); break; //VT100
-    case TY_CSI_PS('m',   3) : _currentScreen->  setRendition     (Rendition::Italic   ); break; //VT100
-    case TY_CSI_PS('m',   4) : _currentScreen->  setRendition     (Rendition::Underline); break; //VT100
-    case TY_CSI_PS('m',   5) : _currentScreen->  setRendition     (Rendition::Blink    ); break; //VT100
-    case TY_CSI_PS('m',   7) : _currentScreen->  setRendition     (Rendition::Reverse  ); break;
+    case TY_CSI_PS('m',   1) : _currentScreen->setRendition          (Rendition::Bold     ); break; //VT100
+    case TY_CSI_PS('m',   2) : _currentScreen->setRendition          (Rendition::Dim      ); break; //VT100
+    case TY_CSI_PS('m',   3) : _currentScreen->setRendition          (Rendition::Italic   ); break; //VT100
+    case TY_CSI_PS('m',   4) : _currentScreen->setRendition          (Rendition::Underline); break; //VT100
+    case TY_CSI_PS('m',   5) : _currentScreen->setRendition          (Rendition::Blink    ); break; //VT100
+    case TY_CSI_PS('m',   7) : _currentScreen->setRendition          (Rendition::Reverse  ); break;
+    case TY_CSI_PS('m',   8) : /* TODO _currentScreen->setRendition          (Rendition::Hidden   );*/ break;
     case TY_CSI_PS('m',  10) : /* IGNORED: mapping related          */ break; //LINUX
     case TY_CSI_PS('m',  11) : /* IGNORED: mapping related          */ break; //LINUX
     case TY_CSI_PS('m',  12) : /* IGNORED: mapping related          */ break; //LINUX
-    case TY_CSI_PS('m',  22) : _currentScreen->resetRendition     (Rendition::Bold     ); break;
+    case TY_CSI_PS('m',  21) : _currentScreen->resetRendition     (Rendition::Bold     ); break;
+    case TY_CSI_PS('m',  22) : _currentScreen->resetRendition     (Rendition::Dim      ); break;
     case TY_CSI_PS('m',  23) : _currentScreen->resetRendition     (Rendition::Italic   ); break; //VT100
     case TY_CSI_PS('m',  24) : _currentScreen->resetRendition     (Rendition::Underline); break;
     case TY_CSI_PS('m',  25) : _currentScreen->resetRendition     (Rendition::Blink    ); break;
     case TY_CSI_PS('m',  27) : _currentScreen->resetRendition     (Rendition::Reverse  ); break;
+    case TY_CSI_PS('m',  28) : /* TODO _currentScreen->resetRendition     (Rendition::Hidden   ); */ break;
 
     case TY_CSI_PS('m',   30) : _currentScreen->setForeColor         (ColorSpace::System,  0); break;
     case TY_CSI_PS('m',   31) : _currentScreen->setForeColor         (ColorSpace::System,  1); break;
