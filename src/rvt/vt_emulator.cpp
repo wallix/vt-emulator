@@ -568,11 +568,15 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     case TY_CSI_PS('J',   3) : /* clearHistory();*/                               break;
     case TY_CSI_PS('g',   0) : _currentScreen->changeTabStop        (false     ); break; //VT100
     case TY_CSI_PS('g',   3) : _currentScreen->clearTabStops        (          ); break; //VT100
-    case TY_CSI_PS('h',   4) : _currentScreen->    setMode      (ScreenMode::Insert   ); break;
-    case TY_CSI_PS('h',  20) :          setMode      (ScreenMode::NewLine  ); break;
-    case TY_CSI_PS('i',   0) : /* IGNORED: attached printer          */ break; //VT100
-    case TY_CSI_PS('l',   4) : _currentScreen->  resetMode      (ScreenMode::Insert   ); break;
-    case TY_CSI_PS('l',  20) :        resetMode      (ScreenMode::NewLine  ); break;
+    case TY_CSI_PS('h',   4) : _currentScreen->   setMode(ScreenMode::Insert   ); break;
+    case TY_CSI_PS('h',  20) :                    setMode(ScreenMode::NewLine  ); break;
+    case TY_CSI_PS('i',   0) : /* IGNORED: attached printer          */           break; //VT100
+    case TY_CSI_PS('l',   4) : _currentScreen-> resetMode(ScreenMode::Insert  );  break;
+    case TY_CSI_PS('l',  20) :                  resetMode(ScreenMode::NewLine  ); break;
+    case TY_CSI_PS('n',   0) : /* IGNORED: DSR – Device Status Report */          break; //VT100
+    case TY_CSI_PS('n',   3) : /* IGNORED: DSR – Device Status Report */          break; //VT100
+    case TY_CSI_PS('n',   5) : /* IGNORED: DSR – Device Status Report */          break; //VT100
+    case TY_CSI_PS('n',   6) : /* IGNORED: DSR – Device Status Report */          break; //VT100
     case TY_CSI_PS('s',   0) :      saveCursor           (          ); break;
     case TY_CSI_PS('u',   0) :      restoreCursor        (          ); break;
 
@@ -645,27 +649,27 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     case TY_CSI_PS('q',   3) : /* IGNORED: LED3 on                  */ break; //VT100
     case TY_CSI_PS('q',   4) : /* IGNORED: LED4 on                  */ break; //VT100
 
-    case TY_CSI_PN('@'      ) : _currentScreen->insertChars          (p         ); break;
-    case TY_CSI_PN('A'      ) : _currentScreen->cursorUp             (p         ); break; //VT100
-    case TY_CSI_PN('B'      ) : _currentScreen->cursorDown           (p         ); break; //VT100
-    case TY_CSI_PN('C'      ) : _currentScreen->cursorRight          (p         ); break; //VT100
-    case TY_CSI_PN('D'      ) : _currentScreen->cursorLeft           (p         ); break; //VT100
-    case TY_CSI_PN('E'      ) : /* Not implemented: cursor next p lines */         break; //VT100
-    case TY_CSI_PN('F'      ) : /* Not implemented: cursor preceding p lines */    break; //VT100
-    case TY_CSI_PN('G'      ) : _currentScreen->setCursorX           (p         ); break; //LINUX
+    case TY_CSI_PN('@'      ) : _currentScreen->insertChars          (p        ); break;
+    case TY_CSI_PN('A'      ) : _currentScreen->cursorUp             (p        ); break; //VT100
+    case TY_CSI_PN('B'      ) : _currentScreen->cursorDown           (p        ); break; //VT100
+    case TY_CSI_PN('C'      ) : _currentScreen->cursorRight          (p        ); break; //VT100
+    case TY_CSI_PN('D'      ) : _currentScreen->cursorLeft           (p        ); break; //VT100
+    case TY_CSI_PN('E'      ) : /* Not implemented: cursor next p lines */        break; //VT100
+    case TY_CSI_PN('F'      ) : /* Not implemented: cursor preceding p lines */   break; //VT100
+    case TY_CSI_PN('G'      ) : _currentScreen->setCursorX           (p        ); break; //LINUX
     case TY_CSI_PN('H'      ) : _currentScreen->setCursorYX          (p,      q); break; //VT100
-    case TY_CSI_PN('I'      ) : _currentScreen->tab                  (p         ); break;
-    case TY_CSI_PN('L'      ) : _currentScreen->insertLines          (p         ); break;
-    case TY_CSI_PN('M'      ) : _currentScreen->deleteLines          (p         ); break;
-    case TY_CSI_PN('P'      ) : _currentScreen->deleteChars          (p         ); break;
-    case TY_CSI_PN('S'      ) : _currentScreen->scrollUp             (p         ); break;
-    case TY_CSI_PN('T'      ) : _currentScreen->scrollDown           (p         ); break;
-    case TY_CSI_PN('X'      ) : _currentScreen->eraseChars           (p         ); break;
-    case TY_CSI_PN('Z'      ) : _currentScreen->backtab              (p         ); break;
-    case TY_CSI_PN('d'      ) : _currentScreen->setCursorY           (p         ); break; //LINUX
+    case TY_CSI_PN('I'      ) : _currentScreen->tab                  (p        ); break;
+    case TY_CSI_PN('L'      ) : _currentScreen->insertLines          (p        ); break;
+    case TY_CSI_PN('M'      ) : _currentScreen->deleteLines          (p        ); break;
+    case TY_CSI_PN('P'      ) : _currentScreen->deleteChars          (p        ); break;
+    case TY_CSI_PN('S'      ) : _currentScreen->scrollUp             (p        ); break;
+    case TY_CSI_PN('T'      ) : _currentScreen->scrollDown           (p        ); break;
+    case TY_CSI_PN('X'      ) : _currentScreen->eraseChars           (p        ); break;
+    case TY_CSI_PN('Z'      ) : _currentScreen->backtab              (p        ); break;
+    case TY_CSI_PN('d'      ) : _currentScreen->setCursorY           (p        ); break; //LINUX
     case TY_CSI_PN('f'      ) : _currentScreen->setCursorYX          (p,      q); break; //VT100
-    case TY_CSI_PN('r'      ) :      setMargins           (p,      q); break; //VT100
-    case TY_CSI_PN('y'      ) : /* IGNORED: Confidence test          */ break; //VT100
+    case TY_CSI_PN('r'      ) : setMargins                           (p,      q); break; //VT100
+    case TY_CSI_PN('y'      ) : /* IGNORED: Confidence test            */         break; //VT100
 
     case TY_CSI_PR('h',   1) : /* Enter  cursor key mode */ break; //VT100
     case TY_CSI_PR('l',   1) : /* Exit   cursor key mode */ break; //VT100
