@@ -357,6 +357,9 @@ public:
     /** Return the number of columns. */
     int getColumns() const;
 
+    /** Return the visibility of cursor. */
+    bool hasCursorVisible() const;
+
     /** Clear the entire screen and move the cursor to the home position.
      * Equivalent to calling clearEntireScreen() followed by home().
      */

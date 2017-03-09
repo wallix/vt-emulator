@@ -144,9 +144,15 @@ std::string json_rendering(
     constexpr std::size_t max_size_by_loop = 111; // approximate
 
     Buf buf;
+    if (screen.hasCursorVisible()) {
+        buf.s += std::sprintf(buf.s, R"({"x":%d,"y":%d)", screen.getCursorX(), screen.getCursorY());
+    }
+    else {
+        buf.unsafe_push_s(R"({"y":-1)");
+    }
     buf.s += std::sprintf(
-        buf.s, R"({"lines":%d,"columns":%d,"x":%d,"y":%d,"title":")",
-        screen.getLines(), screen.getColumns(), screen.getCursorX(), screen.getCursorY()
+        buf.s, R"(,"lines":%d,"columns":%d,"title":")",
+        screen.getLines(), screen.getColumns()
     );
     buf.push_ucs_array(title, max_size_by_loop, out);
     buf.s += std::sprintf(

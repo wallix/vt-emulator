@@ -811,6 +811,11 @@ int Screen::getColumns() const
     return _columns;
 }
 
+bool Screen::hasCursorVisible() const
+{
+    return _currentModes.has(Mode::Cursor);
+}
+
 void Screen::clearImage(int loca, int loce, char c)
 {
     //FIXME: check positions
