@@ -7,9 +7,7 @@ var i2strcolor = function(int_color)
 
 var elem2style = function(e)
 {
-    var style = '';
-    if (e.f) style += 'color:#'+i2strcolor(e.f)+';';
-    if (e.b) style += 'background-color:#'+i2strcolor(e.b)+';';
+    var style = 'color:#' + i2strcolor(e.f) + ';background-color:#' + i2strcolor(e.b) + ';';
     if (e.r) {
         if (e.r & 1) style += 'font-weight:bold;';
         if (e.r & 2) style += 'font-style:italic;';
@@ -24,7 +22,7 @@ var escaped = function(s) {
 
 return function(screen)
 {
-    var estyle = {r: screen.style.r, f: screen.style.f, b: screen.style.b};
+    var estyle = {r: screen.style.r||0, f: screen.style.f||0, b: screen.style.b||0};
 
     var empty_line = '                                                               '
     while (empty_line.length < screen.columns) {
@@ -69,8 +67,8 @@ return function(screen)
     }
 
     return '<p id="tty-player-title">' + (screen.title||'') + '</p>'+
-        '<div id="tty-player-terminal" style="color:' +
-            i2strcolor(screen.style.f) + ';background-color:' +
+        '<div id="tty-player-terminal" style="color:#' +
+            i2strcolor(screen.style.f) + ';background-color:#' +
             i2strcolor(screen.style.b) + '">' +
             terminal +
             // force terminal width
