@@ -110,6 +110,7 @@ struct Buf
 };
 
 // format = "{
+//      $cursor,
 //      lines: %d,
 //      columns: %d,
 //      title: %s,
@@ -118,6 +119,7 @@ struct Buf
 //      data: [ $line... ]
 // }"
 // $line = "[ {" $render? $foreground? $background? "s: %s } ]"
+// $cursor = "x: %d, y: %d" | "y: -1"
 // $render = "r: %d
 //      flags:
 //      1 -> bold
@@ -144,10 +146,13 @@ std::string json_rendering(
     Buf buf;
     buf.s += std::sprintf(
         buf.s, R"({"lines":%d,"columns":%d,"x":%d,"y":%d,"title":")",
-        screen.getLines(), screen.getColumns(), screen.cursorX(), screen.cursorY()
+        screen.getLines(), screen.getColumns(), screen.getCursorX(), screen.getCursorY()
     );
     buf.push_ucs_array(title, max_size_by_loop, out);
-    buf.s += std::sprintf(buf.s, R"(","style":{"r":0,"f":%d,"b":%d},"data":[)", color2int(palette[0]), color2int(palette[1]));
+    buf.s += std::sprintf(
+        buf.s, R"(","style":{"r":0,"f":%d,"b":%d},"data":[)",
+        color2int(palette[0]), color2int(palette[1])
+    );
 
     if (!screen.getColumns() || !screen.getLines()) {
         buf.unsafe_push_s("]}");

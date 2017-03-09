@@ -48,6 +48,8 @@ const Character Screen::DefaultChar = Character(' ',
                                       Rendition::Default,
                                       false);
 
+#define loc(x, y) ((y) * _columns + (x))
+
 Screen::Screen(strictly_positif lines, strictly_positif columns):
     _lines(lines),
     _columns(columns),
@@ -797,6 +799,16 @@ int Screen::getCursorX() const
 int Screen::getCursorY() const
 {
     return _cuY;
+}
+
+int Screen::getLines() const
+{
+    return _lines;
+}
+
+int Screen::getColumns() const
+{
+    return _columns;
 }
 
 void Screen::clearImage(int loca, int loce, char c)

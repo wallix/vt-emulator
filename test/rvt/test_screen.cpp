@@ -33,8 +33,8 @@ BOOST_AUTO_TEST_CASE(TestScreenCtor)
 
     BOOST_CHECK_EQUAL(screen.bottomMargin(), 39);
     BOOST_CHECK_EQUAL(screen.topMargin(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
     BOOST_CHECK_EQUAL(screen.getColumns(), 40);
     BOOST_CHECK_EQUAL(screen.getLines(), 40);
 
@@ -50,59 +50,59 @@ BOOST_AUTO_TEST_CASE(TestScreenCtor)
 BOOST_AUTO_TEST_CASE(TestScreenCursor)
 {
     rvt::Screen screen(40, 40);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
 
     screen.cursorDown(0);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 1);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 1);
     screen.cursorDown(0);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 2);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 2);
     screen.cursorUp(0);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 1);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 1);
     screen.cursorUp(0);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
 
     screen.cursorDown(1);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 1);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 1);
     screen.cursorDown(1);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 2);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 2);
     screen.cursorDown(2);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 4);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 4);
     screen.cursorDown(40);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 39);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 39);
     screen.cursorUp(10);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 29);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 29);
     screen.cursorUp(40);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
 
     screen.cursorRight(2);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 2);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 2);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
     screen.cursorRight(200);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 39);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 39);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
     screen.cursorLeft(3);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 36);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 36);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
     screen.cursorLeft(40);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
     screen.cursorRight(1);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 1);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 1);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
     screen.cursorLeft(2);
-    BOOST_CHECK_EQUAL(screen.cursorX(), 0);
-    BOOST_CHECK_EQUAL(screen.cursorY(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorX(), 0);
+    BOOST_CHECK_EQUAL(screen.getCursorY(), 0);
 }
 
 BOOST_AUTO_TEST_CASE(TestScreenInsert)

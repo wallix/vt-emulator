@@ -352,6 +352,11 @@ public:
     /** Returns the line which the cursor is positioned on. */
     int  getCursorY() const;
 
+    /** Return the number of lines. */
+    int getLines() const;
+    /** Return the number of columns. */
+    int getColumns() const;
+
     /** Clear the entire screen and move the cursor to the home position.
      * Equivalent to calling clearEntireScreen() followed by home().
      */
@@ -405,15 +410,6 @@ public:
      */
     void resizeImage(strictly_positif new_lines, strictly_positif new_columns);
 
-    /** Return the number of lines. */
-    int getLines() const {
-        return _lines;
-    }
-    /** Return the number of columns. */
-    int getColumns() const {
-        return _columns;
-    }
-
     /**
      * Sets or clears an attribute of the current line.
      *
@@ -441,12 +437,7 @@ public:
 
     static const Character DefaultChar;
 
-    int cursorX() const { return _cuX; }
-    int cursorY() const { return _cuY; }
-
 private:
-    inline int loc(int x, int y) { return y * _columns + x; }
-
     //fills a section of the screen image with the character 'c'
     //the parameters are specified as offsets from the start of the screen image.
     //the loc(x,y) macro can be used to generate these values from a column,line pair.
