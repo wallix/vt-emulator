@@ -48,7 +48,7 @@ return function(screen)
 
                 var span_style = '<span style="' + elem2style(estyle) + '">'
                 var s = e.s || ''
-                if (is_cursor_y && line_len <= screen.x && screen.x <= s.length + line_len) {
+                if (is_cursor_y && line_len <= screen.x && screen.x < s.length + line_len) {
                     var curstyle = {r: estyle.r, f: estyle.b, b: estyle.f}
                     var span_style = '<span style="' + elem2style(estyle) + '">'
                     var span_cur_style = '<span style="' + elem2style(curstyle) + '">'
@@ -61,6 +61,10 @@ return function(screen)
                     htmlline += span_style + escaped(s) + '</span>'
                 }
                 line_len += s.length
+            }
+            if (is_cursor_y && line_len <= screen.x) {
+                htmlline += empty_line.substr(0, screen.x - line_len) + '<span style="' +
+                    elem2style({r: estyle.r, f: estyle.b, b: estyle.f}) + '"> </span>'
             }
         }
         terminal += '<p>' + htmlline + '\n</p>';
