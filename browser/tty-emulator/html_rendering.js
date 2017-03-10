@@ -1,84 +1,77 @@
-var TTYHTMLRendering = (function(){
+let TTYHTMLRendering = (function () {
 
-var i2strcolor = function(int_color)
-{
-    return ('00000' + int_color.toString(16)).slice(-6)
+function i2strcolor (int_color) {
+  return ('00000' + int_color.toString(16)).slice(-6)
 }
 
-var elem2style = function(e)
-{
-    var style = 'color:#' + i2strcolor(e.f) + ';background-color:#' + i2strcolor(e.b) + ';';
-    if (e.r) {
-        if (e.r & 1) style += 'font-weight:bold;';
-        if (e.r & 2) style += 'font-style:italic;';
-        if (e.r & 4) style += 'text-decoration:underline;';
-    }
-    return style
+function elem2style (e) {
+  let style = 'color:#' + i2strcolor(e.f) + ';background-color:#' + i2strcolor(e.b) + ';'
+  if (e.r) {
+    if (e.r & 1) style += 'font-weight:bold;'
+    if (e.r & 2) style += 'font-style:italic;'
+    if (e.r & 4) style += 'text-decoration:underline;'
+  }
+  return style
 }
 
-var escaped = function(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+function escaped (s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 }
 
-return function(screen)
-{
-    var estyle = {r: screen.style.r||0, f: screen.style.f||0, b: screen.style.b||0};
+return function (screen) {
+  const estyle = {
+    r: screen.style.r||0,
+    f: screen.style.f||0,
+    b: screen.style.b||0
+  }
 
-    var empty_line = '                                                               '
-    while (empty_line.length < screen.columns) {
-        empty_line += empty_line;
-    }
+  let emptyLine = '                                                               '
+  while (emptyLine.length < screen.columns) {
+    emptyLine += emptyLine
+  }
 
-    var terminal = '';
-    var data = screen.data;
-    //console.log(screen.x,screen.y)
-    for (var ilines in data) {
-        var htmlline = ''
-        var lines = data[ilines]
-        for (var iline in lines) {
-            var line_len = 0
-            var line = lines[iline]
-            var is_cursor_y = (ilines == screen.y)
-            for (var ie in line) {
-                var e = line[ie]
-                //console.log(e)
-                if (e.r !== undefined) estyle.r = e.r;
-                if (e.f !== undefined) estyle.f = e.f;
-                if (e.b !== undefined) estyle.b = e.b;
+  console.log(screen.x,screen.y)
+  const htmlLineArray = screen.data.map(function (lines, y){
+    return lines.reduce(function (htmlline, line){
+        let lineLen = 0
+        const isCursorY = (y === screen.y)
+        htmlline = line.reduce(function (htmlline, e){
+          if (e.r !== undefined) estyle.r = e.r
+          if (e.f !== undefined) estyle.f = e.f
+          if (e.b !== undefined) estyle.b = e.b
 
-                var span_style = '<span style="' + elem2style(estyle) + '">'
-                var s = e.s || ''
-                if (is_cursor_y && line_len <= screen.x && screen.x < s.length + line_len) {
-                    var curstyle = {r: estyle.r, f: estyle.b, b: estyle.f}
-                    var span_style = '<span style="' + elem2style(estyle) + '">'
-                    var span_cur_style = '<span style="' + elem2style(curstyle) + '">'
-                    var pcur = screen.x - line_len;
-                    htmlline += span_style + escaped(s.substr(0, pcur)) + '</span>' +
-                        span_cur_style + escaped(s.substr(pcur, 1)) + '</span>' +
-                        span_style + escaped(s.substr(pcur + 1)) + '</span>'
-                }
-                else {
-                    htmlline += span_style + escaped(s) + '</span>'
-                }
-                line_len += s.length
-            }
-            if (is_cursor_y && line_len <= screen.x) {
-                htmlline += empty_line.substr(0, screen.x - line_len) + '<span style="' +
-                    elem2style({r: estyle.r, f: estyle.b, b: estyle.f}) + '"> </span>'
-            }
+          const spanStyle = '<span style="' + elem2style(estyle) + '">'
+          const s = e.s || ''
+          if (isCursorY && lineLen <= screen.x && screen.x < s.length + lineLen) {
+            const curstyle = { r: estyle.r, f: estyle.b, b: estyle.f }
+            const spanStyle = '<span style="' + elem2style(estyle) + '">'
+            const spanCurStyle = '<span style="' + elem2style(curstyle) + '">'
+            const pcur = screen.x - lineLen
+            htmlline += spanStyle + escaped(s.substr(0, pcur)) + '</span>'
+              + spanCurStyle + escaped(s.substr(pcur, 1)) + '</span>'
+              + spanStyle + escaped(s.substr(pcur + 1)) + '</span>'
+          } else {
+            htmlline += spanStyle + escaped(s) + '</span>'
+          }
+          lineLen += s.length
+          return htmlline
+        }, htmlline)
+        if (isCursorY && lineLen <= screen.x) {
+          htmlline += emptyLine.substr(0, screen.x - lineLen) + '<span style="'
+            + elem2style({ r: estyle.r, f: estyle.b, b: estyle.f }) + '"> </span>'
         }
-        terminal += '<p>' + htmlline + '\n</p>';
-    }
+        return htmlline
+    }, '')
+  })
 
-    return '<p id="tty-player-title">' + (screen.title||'') + '</p>'+
-        '<div id="tty-player-terminal" style="color:#' +
-            i2strcolor(screen.style.f) + ';background-color:#' +
-            i2strcolor(screen.style.b) + '">' +
-            terminal +
-            // force terminal width
-            '<p style="height:1px">' + empty_line.substr(0, screen.columns) + '</p>' +
-        '</div>'
-    ;
+  return '<p id="tty-player-title">' + (screen.title||'') + '</p>'+
+    '<div id="tty-player-terminal" style="color:#' +
+      i2strcolor(screen.style.f) + ';background-color:#' +
+      i2strcolor(screen.style.b) + '">' +
+      '<p>' + htmlLineArray.join('\n</p><p>') + '\n</p>' +
+      // force terminal width
+      '<p style="height:1px">' + emptyLine.substr(0, screen.columns) + '</p>' +
+    '</div>'
 }
 
 })()
