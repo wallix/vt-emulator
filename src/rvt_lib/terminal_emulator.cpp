@@ -273,7 +273,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
     ) {
         auto const err = errno;
         close(fd);
-        unlink(filename);
+        unlink(tmpfilename);
         return err ? err : -1;
     }
 
