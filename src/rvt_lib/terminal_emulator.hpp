@@ -32,7 +32,7 @@ namespace rvt_lib
     };
 }
 
-/// \return  0 if success, -2 if bad argument (emu is null, bad format, bad size, etc), -1 if internal error (bad alloc, etc) and > 0 is an `errno` code
+/// \return  0 if success, -2 if bad argument (emu is null, bad format, bad size, etc), -1 if internal error with `errno` code to 0 (bad alloc, etc) and > 0 is an `errno` code
 //@{
 REDEMPTION_LIB_EXTERN char const * terminal_emulator_version() noexcept;
 REDEMPTION_LIB_EXTERN rvt_lib::TerminalEmulator * terminal_emulator_init(int lines, int columns) noexcept;

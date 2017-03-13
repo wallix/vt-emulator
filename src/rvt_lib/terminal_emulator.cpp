@@ -104,7 +104,7 @@ REDEMPTION_LIB_EXTERN char const * terminal_emulator_version() noexcept
 }
 
 #define return_if(x) do { if (x) { return -2; } } while (0)
-#define return_if_neg(x) do { if (int err_ = (x)) { if (err_ < 0) return err_; } } while (0)
+#define return_if_non_zero(x) do { if (int err_ = (x)) { return err_; } } while (0)
 #define return_errno_if(x) do { if (x) { return errno ? errno : -1; } } while (0)
 #define Panic(expr, err) do { try { expr; } catch (...) { return err; } } while (0)
 #define Panic_errno(expr) do { try { expr; } catch (...) { return errno ? errno : -1; } } while (0)
@@ -206,6 +206,10 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_resize(TerminalEmulator * emu, int l
     return_if(!emu);
     return_if(lines <= 0 || columns <= 0);
 
+    if (lines > 4096 || columns > 4096) {
+        return ENOMEM;
+    }
+
     Panic_errno(emu->emulator.setScreenSize(lines, columns));
     return 0;
 }
@@ -226,7 +230,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write(
     return_if(!filename);
 
     std::string & out = emu->str;
-    return_if_neg(build_format_string(*emu, format, out));
+    return_if_non_zero(build_format_string(*emu, format, out));
 
     int fd = ::open(filename, O_WRONLY | O_CREAT, mode);
     return_errno_if(fd == -1);
@@ -254,7 +258,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
     return_if(!filename);
 
     std::string & out = emu->str;
-    return_if_neg(build_format_string(*emu, format, out));
+    return_if_non_zero(build_format_string(*emu, format, out));
 
     char tmpfilename[4096];
     tmpfilename[0] = 0;
