@@ -18,10 +18,7 @@
 *   Author(s): Jonathan Poelen
 */
 
-
-#define BOOST_AUTO_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE TestRect
+#define BOOST_TEST_MODULE Screen
 #include "system/redemption_unit_tests.hpp"
 
 #include "rvt/screen.hpp"

@@ -1,0 +1,24 @@
+import testing ;
+
+lib libboost_unit_test : : <name>boost_unit_test_framework <link>shared ;
+
+constant TEST_DEPENDENCIES :
+    <cxxflags>-frtti
+    <library>libboost_unit_test
+    <define>BOOST_AUTO_TEST_MAIN
+    <define>BOOST_TEST_DYN_LINK
+;
+
+rule test-run ( target : sources + : requirements * )
+{
+    sources = $(SRC_TEST)/$(sources) ;
+    unit-test $(target) : $(sources) : $(requirements) $(TEST_DEPENDENCIES) ;
+}
+
+rule test-canonical ( base : requirements * )
+{
+    target = $(base:P)/test_$(base:B) ;
+    source = $(base:P)/test_$(base:B).cpp ;
+    test-run $(target) : $(source) : $(requirements) ;
+    alias test_$(base:B) : $(targer) ;
+}
