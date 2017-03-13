@@ -105,6 +105,7 @@ unit-test test_screen : $(RVT_TEST)/test_screen.cpp screen : $(TEST_DEPENDENCIES
 
 unit-test test_utf8_decoder : $(RVT_TEST)/test_utf8_decoder.cpp : $(TEST_DEPENDENCIES) ;
 
+unit-test test_char_class : $(RVT_TEST)/test_char_class.cpp : $(TEST_DEPENDENCIES) ;
 unit-test test_vt_emulator : $(RVT_TEST)/test_vt_emulator.cpp libemu : $(TEST_DEPENDENCIES) ;
 
 unit-test test_terminal_emulator : $(RVT_LIB_TEST)/test_terminal_emulator.cpp libterm : $(TEST_DEPENDENCIES) ;

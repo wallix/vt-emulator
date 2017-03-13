@@ -28,11 +28,8 @@
 #include "rvt/character.hpp"
 #include "rvt/charsets.hpp"
 #include "rvt/screen.hpp"
+#include "rvt/char_class.hpp"
 #include "rvt/vt_emulator.hpp"
-
-//#define CXX_UNUSED(x) (void)x // [[maybe_unused]]
-
-// #define REDEMPTION_DIAGNOSTIC_IGNORE_CONVERSION REDEMPTION_DIAGNOSTIC_GCC_IGNORE("-Wconversion")
 
 namespace rvt
 {
@@ -41,7 +38,6 @@ VtEmulator::VtEmulator(int lines, int columns)
 : _screen0{lines, columns}
 , _screen1{lines, columns}
 {
-    initTokenizer();
     reset();
 }
 
@@ -179,38 +175,6 @@ void VtEmulator::addToCurrentToken(ucs4_char cc)
 {
     tokenBuffer[tokenBufferPos] = cc;
     tokenBufferPos = std::min(tokenBufferPos + 1, MAX_TOKEN_LENGTH - 1);
-}
-
-// Character Class flags used while decoding
-const int CTL =  1;  // Control character
-const int CHR =  2;  // Printable character
-const int CPN =  4;  // TODO: Document me
-const int DIG =  8;  // Digit
-const int SCS = 16;  // Select Character Set
-const int GRP = 32;  // TODO: Document me
-const int CPS = 64;  // Character which indicates end of window resize
-
-void VtEmulator::initTokenizer()
-{
-    auto as_bytes = [](char const * s) { return reinterpret_cast<uint8_t const *>(s); };
-
-    for (int i = 0; i < 256; ++i)
-        charClass[i] = 0;
-    for (int i = 0; i < 32; ++i)
-        charClass[i] |= CTL;
-    for (int i = 32; i < 256; ++i)
-        charClass[i] |= CHR;
-    for (auto s = as_bytes("@ABCDGHILMPSTXZcdfry"); *s; ++s)
-        charClass[*s] |= CPN;
-    // resize = \e[8;<row>;<col>t
-    for (auto s = as_bytes("t"); *s; ++s)
-        charClass[*s] |= CPS;
-    for (auto s = as_bytes("0123456789"); *s; ++s)
-        charClass[*s] |= DIG;
-    for (auto s = as_bytes("()+*%"); *s; ++s)
-        charClass[*s] |= SCS;
-    for (auto s = as_bytes("()+*#[]%"); *s; ++s)
-        charClass[*s] |= GRP;
 }
 
 /* Ok, here comes the nasty part of the decoder.

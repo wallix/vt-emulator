@@ -128,12 +128,6 @@ private:
     void addArgument();
     int argv[MAXARGS];
     int argc;
-    void initTokenizer();
-
-    // Set of flags for each of the ASCII characters which indicates
-    // what category they fall into (printable character, control, digit etc.)
-    // for the purposes of decoding terminal output
-    int charClass[256];
 
     void reportDecodingError();
 

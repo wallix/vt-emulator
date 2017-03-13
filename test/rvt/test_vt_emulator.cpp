@@ -27,6 +27,8 @@
 #include "rvt/vt_emulator.hpp"
 #include "rvt/utf8_decoder.hpp"
 
+#include <iosfwd>
+
 namespace rvt {
 
 inline std::ostream & operator<<(std::ostream & out, CharacterColor const & ch_color)
@@ -51,9 +53,6 @@ inline std::ostream & operator<<(std::ostream & out, Character const & ch)
 }
 
 }
-
-#include <iostream>
-#include <iomanip>
 
 BOOST_AUTO_TEST_CASE(TestEmulator)
 {
