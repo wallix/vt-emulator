@@ -28,6 +28,7 @@
 #include <fstream>
 
 #include <cstring>
+#include <cerrno>
 
 #include <unistd.h>
 
@@ -135,7 +136,8 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_size(nullptr));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_reset(nullptr));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_resize(emu, -3, 3));
-    BOOST_CHECK_EQUAL(-1, terminal_emulator_resize(emu, ~0u>>1, ~0u>>1)); // bad alloc
+    const unsigned very_big_size = (~0u>>1) - 1u; // -1u for inhibit integer overflow (uint -> int)
+    BOOST_CHECK_EQUAL(ENOMEM, terminal_emulator_resize(emu, very_big_size, very_big_size)); // bad alloc
 
     BOOST_CHECK(0 < terminal_emulator_write_integrity(emu, OutputFormat::json, "/a/a", filename, 0664));
     BOOST_CHECK(0 < terminal_emulator_write_integrity(emu, OutputFormat::json, filename, "/a/a", 0664));
