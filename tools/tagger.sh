@@ -66,7 +66,7 @@ fi
 gdiff=$(GIT_PAGER=cat git diff --shortstat)
 
 if [ $? != 0 ] || [ "$gdiff" != '' ] ; then
-    echo "your repository has uncommited changes:\n$gdiff\nPlease commit before packaging." >&2
+    echo -e "your repository has uncommited changes:\n$gdiff\nPlease commit before packaging." >&2
     exit 2
 fi
 
