@@ -63,31 +63,31 @@ if [ $force_vers = 0 ] && [ "$current_version" = "$new_version" ] ; then
     exit 2
 fi
 
-gdiff=$(GIT_PAGER=cat git diff --shortstat)
+# gdiff=$(GIT_PAGER=cat git diff --shortstat)
+#
+# if [ $? != 0 ] || [ "$gdiff" != '' ] ; then
+#     echo "your repository has uncommited changes:\n$gdiff\nPlease commit before packaging." >&2
+#     exit 2
+# fi
+#
+# check_tag ()
+# {
+#     while read l ; do
+#         if [ "$l" = "$new_version" ] ; then
+#             echo "tag $new_version already exists ("$1")."
+#             exit 2
+#         fi
+#     done
+# }
+#
+# git tag --list | check_tag locale
+# git ls-remote --tags origin | sed 's#.*/##' | check_tag remote
 
-if [ $? != 0 ] || [ "$gdiff" != '' ] ; then
-    echo "your repository has uncommited changes:\n$gdiff\nPlease commit before packaging." >&2
-    exit 2
-fi
+echo -e "#pragma once\n#define RVT_LIB_VERSION \"$new_version\"" > "$version_file"
 
-check_tag ()
-{
-    while read l ; do
-        if [ "$l" = "$new_version" ] ; then
-            echo "tag $new_version already exists ("$1")."
-            exit 2
-        fi
-    done
-}
-
-git tag --list | check_tag locale
-git ls-remote --tags origin | sed 's#.*/##' | check_tag remote
-
-echo "#pragma once\n#define RVT_LIB_VERSION \"$new_version\"" > "$version_file"
-
-$packager --version "$new_version" "$@" && \
-git commit -am "Version $new_version" && git tag "$new_version" && {
-    [ $push = 1 ] && git push && git push --tags
-}
+# $packager --version "$new_version" "$@" && \
+# git commit -am "Version $new_version" && git tag "$new_version" && {
+#     [ $push = 1 ] && git push && git push --tags
+# }
 
 exit $?
