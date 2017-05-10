@@ -19,6 +19,7 @@
 */
 
 #include "terminal_emulator.hpp"
+#include "version.hpp"
 
 #include "rvt/character_color.hpp"
 #include "rvt/vt_emulator.hpp"
@@ -100,7 +101,7 @@ static int build_format_string(TerminalEmulator & emu, OutputFormat format, std:
 
 REDEMPTION_LIB_EXTERN char const * terminal_emulator_version() noexcept
 {
-    return "0.1.0";
+    return RVT_LIB_VERSION;
 }
 
 #define return_if(x) do { if (x) { return -2; } } while (0)

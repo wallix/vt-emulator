@@ -37,7 +37,7 @@ $ `bjam install install-tty-browser`
 
 With Wallix packager (https://github.com/wallix/packager).
 
-`$ $PACKAGER_PROJECT/packager.py --version 1.0 --no-entry-changelog`
+`$ $PACKAGER_PROJECT/packager.py --version $(./tagger.sh -g) --no-entry-changelog --build-package`
 
 `$ dpkg-buildpackage -I.git -Ibin -uc -us`
 
