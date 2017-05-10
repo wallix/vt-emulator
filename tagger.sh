@@ -9,13 +9,13 @@ progname="$0"
 usage ()
 {
     echo 'usage:' >&2
-    echo "  $progname -u,--update-version new-version [-p,--push] [-P,--packager path] [-- packager_args...]" >&2
+    echo "  $progname -u,--update-version new-version [-f,--force-version] [-p,--push] [-P,--packager path] [-- packager_args...]" >&2
     echo "  $progname -g,--get-version" >&2
     echo "current version: $current_version"
     exit 1
 }
 
-TEMP=`getopt -o 'gpu:P:' -l 'get-version,push,update-version:packager:' -- "$@"`
+TEMP=`getopt -o 'gpfu:P:' -l 'get-version,push,force-version,update-version:packager:' -- "$@"`
 
 if [ $? != 0 ] ; then usage >&2 ; fi
 
@@ -25,10 +25,12 @@ new_version=
 gver=0
 push=0
 packager=wallix-packager
+force_vers=0
 while true; do
   case "$1" in
     -g|--get-version) gver=1; shift ;;
     -p|--push) push=1; shift ;;
+    -f|--force-version) force_vers=1; shift ;;
     -u|--update-version)
         [ -z "$2" ] && usage
         new_version="$2"
@@ -56,8 +58,7 @@ if [ -z "$new_version" ] ; then
     usage
 fi
 
-
-if [ "$current_version" = "$new_version" ] ; then
+if [ $force_vers = 0 ] && [ "$current_version" = "$new_version" ] ; then
     echo version is already to "$new_version"
     exit 2
 fi
