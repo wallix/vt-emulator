@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")"/..
 
 version_file=src/rvt_lib/version.hpp
 current_version=$(sed -E '/#d/!d;s/.*"([^"]+)".*/\1/' "$version_file")
