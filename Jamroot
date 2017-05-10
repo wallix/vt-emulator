@@ -1,15 +1,20 @@
-include jam/cxxflags.jam ;
+PROJECT_PATH ?= ./ ;
 
-constant SRC : src ;
-constant SRC_TEST : test ;
+constant JAM : $(PROJECT_PATH)/jam ;
+constant SRC : $(PROJECT_PATH)/src ;
+constant TOOLS : $(PROJECT_PATH)/tools ;
+constant SRC_TEST : $(PROJECT_PATH)/test ;
+constant BROWSER : $(PROJECT_PATH)/browser ;
 constant RVT_SRC : $(SRC)/rvt ;
 constant RVT_LIB_SRC : $(SRC)/rvt_lib ;
 
+include $(JAM)/cxxflags.jam ;
+
 project vt_emulator
 : requirements
-    <include>src
-    <include>redemption/src
-    <include>redemption/src/system/linux
+    <include>$(SRC)
+    <include>$(PROJECT_PATH)/redemption/src
+    <include>$(PROJECT_PATH)/redemption/src/system/linux
 
     <cxxflags>-std=c++11
 
@@ -57,13 +62,13 @@ install install-headers
     ;
 
 install install-tty-browser-js
-    : browser/tty-emulator/html_rendering.js
+    : $(BROWSER)/tty-emulator/html_rendering.js
     :
     : <location>$(TTY_BROWSER_JS_FILE)
     ;
 
 install install-tty-browser-css
-    : browser/tty-emulator/player.css
+    : $(BROWSER)/tty-emulator/player.css
     :
     : <location>$(TTY_BROWSER_CSS_FILE)
     ;
@@ -81,13 +86,13 @@ alias libterm : libwallix_term ;
 
 ## Tools
 ## @{
-exe terminal_browser : tools/terminal_browser.cpp libterm : ;
+exe terminal_browser : $(TOOLS)/terminal_browser.cpp libterm : ;
 ## @}
 
 
 ## Tests
 ## @{
-include jam/testing.jam ;
+include $(JAM)/testing.jam ;
 
 test-canonical rvt/character_color.hpp ;
 test-canonical rvt/character.hpp ;
