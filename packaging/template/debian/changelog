@@ -1,4 +1,4 @@
-vt-emulator (1.0%TARGET_NAME%) %PKG_DISTRIBUTION%; urgency=low
+vt-emulator (0.1.0%TARGET_NAME%) %PKG_DISTRIBUTION%; urgency=low
 
   * libwallix_term and demo
 
