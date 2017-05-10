@@ -23,12 +23,12 @@ build:
 	#bjam -q link=shared link=static debug install-libs
 	#mv "$(LIB_PREFIX)/libwallix_term.so" "$(LIB_PREFIX)/libwallix_term_d.so"
 	#mv "$(LIB_PREFIX)/libwallix_term.a" "$(LIB_PREFIX)/libwallix_term_d.a"
-	bjam -q -j3 release %CXXFLAGS% %LINKFLAGS%
+	bjam -q -j3 %BJAM_FLAGS%
 
 install: build
 	dh_testdir Jamroot
 	#bjam -q link=shared link=static release install install-tty-browser
-	bjam -q release %CXXFLAGS% %LINKFLAGS% install-libs install-tty-browser
+	bjam -q %BJAM_FLAGS% %BJAM_INSTALL%
 
 binary-indep: build install
 

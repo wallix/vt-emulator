@@ -1,9 +1,11 @@
 LIB_PREFIX=/usr/lib
 INCLUDE_PREFIX=/usr/local/include/wallix
-TTY_BROWSER_JS_PREFIX=/opt/wab/share/sitedjango/media/javascript/lib/rl-html-rendering.js
-TTY_BROWSER_CSS_PREFIX=/opt/wab/share/sitedjango/media/css/rl-tty-player.css
-CXXFLAGS=cxxflags='-fstack-protector-strong -D_FORTIFY_SOURCE=2'
-LINKFLAGS=linkflags='-Wl,-z,relro,-z,now'
+TTY_BROWSER_JS_PREFIX=/usr/local/share/wallix-vt-emulator/html-rendering.js
+TTY_BROWSER_CSS_PREFIX=/usr/local/share/wallix-vt-emulator/tty-player.css
+
+BJAM_FLAGS=release
+BJAM_INSTALL=install
+
 ARCH=any
 BUILD_DEPENDS=debhelper (>=7), dpkg-dev, build-essential, g++ (>=4.9), libboost-dev
 DEPENDS=
