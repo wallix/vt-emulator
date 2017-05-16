@@ -60,8 +60,6 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_resize(TerminalEmulator *, int lines
 
 //BEGIN buffer
 REDEMPTION_LIB_EXTERN int terminal_emulator_buffer_prepare(
-    TerminalEmulator *, OutputFormat) noexcept;
-REDEMPTION_LIB_EXTERN int terminal_emulator_buffer_prepare_with_extra(
     TerminalEmulator *, OutputFormat, char const * extra_data) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_buffer_size(TerminalEmulator const *) noexcept;
 REDEMPTION_LIB_EXTERN char const * terminal_emulator_buffer_data(TerminalEmulator const *) noexcept;
@@ -73,6 +71,14 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write_buffer(
     TerminalEmulator const *, char const * filename, int mode) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_write_buffer_integrity(
     TerminalEmulator const *, char const * filename, char const * prefix_tmp_filename, int mode) noexcept;
+/// \brief terminal_emulator_buffer_prepare then terminal_emulator_write_buffer
+REDEMPTION_LIB_EXTERN int terminal_emulator_write(
+    TerminalEmulator *, OutputFormat, char const * extra_data,
+    char const * filename, int mode) noexcept;
+/// \brief terminal_emulator_buffer_prepare then terminal_emulator_write_buffer_integrity
+REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
+    TerminalEmulator *, OutputFormat, char const * extra_data,
+    char const * filename, char const * prefix_tmp_filename, int mode) noexcept;
 //END write
 
 //@}

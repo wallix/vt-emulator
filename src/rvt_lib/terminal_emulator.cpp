@@ -235,14 +235,6 @@ int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns) noe
 
 REDEMPTION_LIB_EXTERN
 int terminal_emulator_buffer_prepare(
-    TerminalEmulator * emu, OutputFormat format
-) noexcept
-{
-    return terminal_emulator_buffer_prepare_with_extra(emu, format, nullptr);
-}
-
-REDEMPTION_LIB_EXTERN
-int terminal_emulator_buffer_prepare_with_extra(
     TerminalEmulator * emu, OutputFormat format, char const * extra_data
 ) noexcept
 {
@@ -311,4 +303,31 @@ int terminal_emulator_write_buffer_integrity(
     close(fd);
 
     return 0;
+}
+
+
+REDEMPTION_LIB_EXTERN
+int terminal_emulator_write(
+    TerminalEmulator * emu, OutputFormat format, char const * extra_data,
+    char const * filename, int mode
+) noexcept
+{
+    return_if(!filename);
+    if (int err = terminal_emulator_buffer_prepare(emu, format, extra_data)) {
+        return err;
+    }
+    return terminal_emulator_write_buffer(emu, filename, mode);
+}
+
+REDEMPTION_LIB_EXTERN
+int terminal_emulator_write_integrity(
+    TerminalEmulator * emu, OutputFormat format, char const * extra_data,
+    char const * filename, char const * prefix_tmp_filename, int mode
+) noexcept
+{
+    return_if(!filename);
+    if (int err = terminal_emulator_buffer_prepare(emu, format, extra_data)) {
+        return err;
+    }
+    return terminal_emulator_write_buffer_integrity(emu, filename, prefix_tmp_filename, mode);
 }
