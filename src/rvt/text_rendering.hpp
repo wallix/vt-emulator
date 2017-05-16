@@ -28,7 +28,13 @@ namespace rvt {
 
 class Screen;
 
-std::string json_rendering(ucs4_carray_view title, Screen const & screen, ColorTableView palette);
-std::string ansi_rendering(ucs4_carray_view title, Screen const & screen, ColorTableView palette);
+std::string json_rendering(
+    ucs4_carray_view title, Screen const & screen,
+    ColorTableView palette, char const * extra_data = nullptr
+);
+std::string ansi_rendering(
+    ucs4_carray_view title, Screen const & screen,
+    ColorTableView palette, char const * extra_data = nullptr
+);
 
 }

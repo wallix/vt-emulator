@@ -18,6 +18,7 @@ namespace boost { namespace unit_test { namespace ut_detail {
 # define BOOST_CHECK_NO_THROW(stmt) do { stmt; } while (0)
 # define BOOST_CHECK_THROW(stmt, exception) do { stmt; [](exception) {}; } while (0)
 # define BOOST_CHECK_EQUAL(a, b) (a) == (b)
+# define BOOST_CHECK_LT(a, b) (a) < (b)
 # define BOOST_CHECK_NE(a, b) (a) != (b)
 # define BOOST_CHECK(a, b) (a) != (b)
 # define BOOST_CHECK_EQUAL_RANGES(a, b) (a) != (b)

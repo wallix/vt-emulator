@@ -115,8 +115,8 @@ struct Buf
 //      columns: %d,
 //      title: %s,
 //      style: {$render $foreground $background},
-//      props: "[0-7]*"
 //      data: [ $line... ]
+//      extra: extra_data // if extra_data != nullptr
 // }"
 // $line = "[ {" $render? $foreground? $background? "s: %s } ]"
 // $cursor = "x: %d, y: %d" | "y: -1"
@@ -133,7 +133,8 @@ struct Buf
 std::string json_rendering(
     array_view<ucs4_char const> title,
     Screen const & screen,
-    ColorTableView palette
+    ColorTableView palette,
+    char const * extra_data
 ) {
     auto color2int = [](rvt::Color const & color){
         return (color.red() << 16) | (color.green() << 8) |  (color.blue() << 0);
@@ -232,16 +233,26 @@ std::string json_rendering(
         buf.unsafe_push_s("}]],");
     }
     --buf.s;
-    buf.unsafe_push_s("]}");
 
-    buf.flush(out);
+    if (extra_data) {
+        buf.unsafe_push_s("],\"extra\":");
+        buf.flush(out);
+        out += extra_data;
+        out += '}';
+    }
+    else {
+        buf.unsafe_push_s("]}");
+        buf.flush(out);
+    }
+
     return out;
 }
 
 std::string ansi_rendering(
     array_view<ucs4_char const> title,
     Screen const & screen,
-    ColorTableView palette
+    ColorTableView palette,
+    char const * extra_data
 ) {
     auto write_color = [palette](Buf & buf, char cmd, rvt::CharacterColor const & ch_color) {
         auto color = ch_color.color(palette);
@@ -298,6 +309,10 @@ std::string ansi_rendering(
     }
 
     buf.flush(out);
+    if (extra_data) {
+        out += extra_data;
+    }
+
     return out;
 }
 

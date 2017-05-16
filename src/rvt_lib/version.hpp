@@ -1,2 +1,2 @@
 #pragma once
-#define RVT_LIB_VERSION "0.1.0a"
+#define RVT_LIB_VERSION "1.0.0"
