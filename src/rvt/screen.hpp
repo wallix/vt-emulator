@@ -27,6 +27,7 @@
 #include "utils/sugar/enum_flags_operators.hpp"
 
 #include <vector>
+#include <functional>
 
 #include <cstdint>
 #include <cassert>
@@ -118,8 +119,10 @@ public:
         COUNT_
     };
 
+    using saveLineFnType = std::function<void(Screen const&, array_view<const Character>)>;
+
     /** Construct a new screen image of size @p lines by @p columns. */
-    Screen(strictly_positif lines, strictly_positif columns);
+    Screen(strictly_positif lines, strictly_positif columns, saveLineFnType fn = nullptr);
     ~Screen();
 
     Screen(const Screen&) = delete;
@@ -466,12 +469,8 @@ private:
     int _lines;
     int _columns;
 
-    typedef std::vector<Character> ImageLine;      // [0..columns]
-#ifdef IN_IDE_PARSER
-    ImageLine* _screenLines;    // [lines]
-#else
-    std::vector<ImageLine> _screenLines;    // [lines]
-# endif
+    using ImageLine = std::vector<Character> ; // [0..columns]
+    std::vector<ImageLine> _screenLines;       // [lines]
 
 public:
     array_view<const ImageLine> getScreenLines() const
@@ -529,6 +528,11 @@ private:
     SavedState _savedState;
 
     ExtendedCharTable _extendedCharTable;
+
+    void saveLine() const;
+    void saveLines(int topLine, int bottomLine) const;
+
+    saveLineFnType saveLineFn;
 };
 
 }

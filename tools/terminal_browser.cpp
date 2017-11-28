@@ -53,12 +53,12 @@ int main(int ac, char ** av)
         if (c == '\n' || ++n == 100) {
             n = 0;
             PError(terminal_emulator_write_integrity(
-                emu, OutputFormat::json, nullptr, filename, filename, 0440
+                emu, OutputFormat::json, nullptr, filename, filename, 0660
             ));
         }
     }
     PError(terminal_emulator_finish(emu));
     PError(terminal_emulator_write_integrity(
-        emu, OutputFormat::json, nullptr, filename, filename, 0440
+        emu, OutputFormat::json, nullptr, filename, filename, 0660
     ));
 }

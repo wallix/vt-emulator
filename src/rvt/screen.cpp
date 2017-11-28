@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cassert>
 
+
 namespace rvt
 {
 
@@ -50,7 +51,7 @@ const Character Screen::DefaultChar = Character(' ',
 
 #define loc(x, y) ((y) * _columns + (x))
 
-Screen::Screen(strictly_positif lines, strictly_positif columns):
+Screen::Screen(strictly_positif lines, strictly_positif columns, saveLineFnType saveLineFn):
     _lines(lines),
     _columns(columns),
     _screenLines(_lines + 1),
@@ -61,7 +62,8 @@ Screen::Screen(strictly_positif lines, strictly_positif columns):
     _bottomMargin(0),
     _effectiveForeground{},
     _effectiveBackground{},
-    _effectiveRendition(Rendition::Default)
+    _effectiveRendition(Rendition::Default),
+    saveLineFn(std::move(saveLineFn))
 {
     _lineProperties.resize(_lines + 1, LineProperty::Default);
 
@@ -71,12 +73,29 @@ Screen::Screen(strictly_positif lines, strictly_positif columns):
 
 Screen::~Screen() = default;
 
+void Screen::saveLine() const
+{
+    if (this->saveLineFn) {
+        this->saveLineFn(*this, this->_screenLines[_cuY]);
+    }
+}
+
+void Screen::saveLines(int topLine, int bottomLine) const
+{
+    if (this->saveLineFn) {
+        for (int y = topLine; y <= bottomLine; y++) {
+            this->saveLineFn(*this, this->_screenLines[y]);
+        }
+    }
+}
+
 void Screen::cursorUp(int n)
 //=CUU
 {
     if (n == 0) n = 1; // Default
     const int stop = _cuY < _topMargin ? 0 : _topMargin;
     _cuX = std::min(_columns - 1, _cuX); // nowrap!
+    saveLine();
     _cuY = std::max(stop, _cuY - n);
 }
 
@@ -86,6 +105,7 @@ void Screen::cursorDown(int n)
     if (n == 0) n = 1; // Default
     const int stop = _cuY > _bottomMargin ? _lines - 1 : _bottomMargin;
     _cuX = std::min(_columns - 1, _cuX); // nowrap!
+    saveLine();
     _cuY = std::min(stop, _cuY + n);
 }
 
@@ -118,6 +138,7 @@ void Screen::setMargins(int top, int bot)
     _topMargin = top;
     _bottomMargin = bot;
     _cuX = 0;
+    saveLine();
     _cuY = getMode(Mode::Origin) ? top : 0;
 }
 
@@ -135,8 +156,10 @@ void Screen::index()
 {
     if (_cuY == _bottomMargin)
         scrollUp(1);
-    else if (_cuY < _lines - 1)
+    else if (_cuY < _lines - 1) {
+        saveLine();
         _cuY += 1;
+    }
 }
 
 void Screen::reverseIndex()
@@ -144,8 +167,10 @@ void Screen::reverseIndex()
 {
     if (_cuY == _topMargin)
         scrollDown(_topMargin, 1);
-    else if (_cuY > 0)
+    else if (_cuY > 0) {
+        saveLine();
         _cuY -= 1;
+    }
 }
 
 void Screen::nextLine()
@@ -223,6 +248,7 @@ void Screen::setMode(Mode m)
     switch (m) {
     case Mode::Origin:
         _cuX = 0;
+        saveLine();
         _cuY = _topMargin;
         break; //FIXME: home
     default:
@@ -236,6 +262,7 @@ void Screen::resetMode(Mode m)
     switch (m) {
     case Mode::Origin:
         _cuX = 0;
+        saveLine();
         _cuY = 0;
         break; //FIXME: home
     default:
@@ -301,6 +328,7 @@ void Screen::resizeImage(strictly_positif new_lines, strictly_positif new_column
     _lines = new_lines;
     _columns = new_columns;
     _cuX = std::min(_cuX, _columns - 1);
+    saveLine();
     _cuY = std::min(_cuY, _lines - 1);
 
     // FIXME: try to keep values, evtl.
@@ -730,6 +758,7 @@ void Screen::scrollUp(int from, int n)
 {
     if (n <= 0 || from + n > _bottomMargin) return;
 
+    saveLines(_bottomMargin - n + 1, _bottomMargin);
     //FIXME: make sure `topMargin', `bottomMargin', `from', `n' is in bounds.
     moveImage(loc(0, from), loc(0, from + n), loc(_columns - 1, _bottomMargin));
     clearImage(loc(0, _bottomMargin - n + 1), loc(_columns - 1, _bottomMargin), ' ');
@@ -750,6 +779,8 @@ void Screen::scrollDown(int from, int n)
         return;
     if (from + n > _bottomMargin)
         n = _bottomMargin - from;
+
+    saveLines(from, from + n - 1);
     moveImage(loc(0, from + n), loc(0, from), loc(_columns - 1, _bottomMargin - n));
     clearImage(loc(0, from), loc(_columns - 1, from + n - 1), ' ');
 }
@@ -771,12 +802,14 @@ void Screen::setCursorY(int y)
 {
     if (y == 0) y = 1; // Default
     y -= 1; // Adjust
+    saveLine();
     _cuY = std::max(0, std::min(_lines  - 1, y + (getMode(Mode::Origin) ? _topMargin : 0)));
 }
 
 void Screen::home()
 {
     _cuX = 0;
+    saveLine();
     _cuY = 0;
 }
 
