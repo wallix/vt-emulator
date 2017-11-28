@@ -61,8 +61,7 @@ Screen::Screen(strictly_positif lines, strictly_positif columns):
     _bottomMargin(0),
     _effectiveForeground{},
     _effectiveBackground{},
-    _effectiveRendition(Rendition::Default),
-    _lastPos(-1)
+    _effectiveRendition(Rendition::Default)
 {
     _lineProperties.resize(_lines + 1, LineProperty::Default);
 
@@ -696,11 +695,6 @@ void Screen::displayCharacter(ucs4_char c)
 
     if (getMode(Mode::Insert)) insertChars(w);
 
-    _lastPos = loc(_cuX, _cuY);
-
-    // check if selection is still valid.
-    //checkSelection(_lastPos, _lastPos);
-
     Character& currentChar = _screenLines[_cuY][_cuX];
 
     currentChar.character = c;
@@ -871,13 +865,6 @@ void Screen::moveImage(int dest, int sourceBegin, int sourceEnd)
             _screenLines[(dest / _columns) + i ] = std::move(_screenLines[(sourceBegin / _columns) + i ]);
             _lineProperties[(dest / _columns) + i] = std::move(_lineProperties[(sourceBegin / _columns) + i]);
         }
-    }
-
-    if (_lastPos != -1) {
-        const int diff = dest - sourceBegin; // Scroll by this amount
-        _lastPos += diff;
-        if ((_lastPos < 0) || (_lastPos >= (lines * _columns)))
-            _lastPos = -1;
     }
 }
 

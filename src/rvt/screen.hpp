@@ -528,9 +528,6 @@ private:
     };
     SavedState _savedState;
 
-    // last position where we added a character
-    int _lastPos;
-
     ExtendedCharTable _extendedCharTable;
 };
 
