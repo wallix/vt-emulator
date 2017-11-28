@@ -102,7 +102,7 @@ test-canonical rvt/screen.hpp : <library>screen ;
 test-canonical rvt/utf8_decoder.hpp ;
 
 test-canonical rvt/char_class.hpp ;
-test-canonical rvt/vt_emulator.hpp : <library>libemu ;
+test-canonical rvt/vt_emulator.hpp : <library>libemu <library>text_rendering ;
 
 test-canonical rvt_lib/terminal_emulator.hpp : <library>libterm ;
 ## }
