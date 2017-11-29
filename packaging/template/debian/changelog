@@ -1,3 +1,10 @@
+vt-emulator (1.1.0%TARGET_NAME%) %PKG_DISTRIBUTION%; urgency=low
+
+  * - new function: terminal_emulator_transcript_from_ttyrec: generate a transcript file of session recorded by ttyrec
+
+
+ -- WAB Dev Team <wab@wallix.com>  Wed, 29 Nov 2017 18:38:30 +0200
+
 vt-emulator (0.1.0%TARGET_NAME%) %PKG_DISTRIBUTION%; urgency=low
 
   * libwallix_term and demo
