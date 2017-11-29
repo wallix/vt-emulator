@@ -87,7 +87,7 @@ alias libterm : libwallix_term ;
 ## Tools
 ## @{
 exe terminal_browser : $(TOOLS)/terminal_browser.cpp libterm : ;
-exe transcripter : $(TOOLS)/transcripter.cpp libterm : ;
+exe ttyrec_transcript : $(TOOLS)/ttyrec_transcript.cpp libterm : ;
 ## @}
 
 
