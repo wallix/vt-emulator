@@ -1,10 +1,11 @@
 import testing ;
 
-lib libboost_unit_test : : <name>boost_unit_test_framework <link>shared ;
+lib libunit_test : $(PROJECT_PATH)/redemption/src/system/linux/system/test_framework.cpp : <link>shared ;
+# lib libboost_unit_test : : <name>boost_unit_test_framework <link>shared ;
 
 constant TEST_DEPENDENCIES :
     <cxxflags>-frtti
-    <library>libboost_unit_test
+    <library>libunit_test
     <define>BOOST_AUTO_TEST_MAIN
     <define>BOOST_TEST_DYN_LINK
 ;
@@ -20,5 +21,5 @@ rule test-canonical ( base : requirements * )
     target = $(base:P)/test_$(base:B) ;
     source = $(base:P)/test_$(base:B).cpp ;
     test-run $(target) : $(source) : $(requirements) ;
-    alias test_$(base:B) : $(targer) ;
+    alias test_$(base:B) : $(target) ;
 }

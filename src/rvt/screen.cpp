@@ -51,7 +51,7 @@ const Character Screen::DefaultChar = Character(' ',
 
 #define loc(x, y) ((y) * _columns + (x))
 
-Screen::Screen(strictly_positif lines, strictly_positif columns, saveLineFnType saveLineFn):
+Screen::Screen(strictly_positif lines, strictly_positif columns):
     _lines(lines),
     _columns(columns),
     _screenLines(_lines + 1),
@@ -63,7 +63,7 @@ Screen::Screen(strictly_positif lines, strictly_positif columns, saveLineFnType 
     _effectiveForeground{},
     _effectiveBackground{},
     _effectiveRendition(Rendition::Default),
-    saveLineFn(std::move(saveLineFn))
+    _lineSaver{}
 {
     _lineProperties.resize(_lines + 1, LineProperty::Default);
 
@@ -73,18 +73,23 @@ Screen::Screen(strictly_positif lines, strictly_positif columns, saveLineFnType 
 
 Screen::~Screen() = default;
 
+void Screen::setLineSaver(LineSaver lineSaver)
+{
+    this->_lineSaver = std::move(lineSaver);
+}
+
 void Screen::saveLine() const
 {
-    if (this->saveLineFn) {
-        this->saveLineFn(*this, this->_screenLines[_cuY]);
+    if (this->_lineSaver) {
+        this->_lineSaver(*this, this->_screenLines[_cuY]);
     }
 }
 
 void Screen::saveLines(int topLine, int bottomLine) const
 {
-    if (this->saveLineFn) {
+    if (this->_lineSaver) {
         for (int y = topLine; y <= bottomLine; y++) {
-            this->saveLineFn(*this, this->_screenLines[y]);
+            this->_lineSaver(*this, this->_screenLines[y]);
         }
     }
 }

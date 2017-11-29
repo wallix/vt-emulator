@@ -57,7 +57,7 @@ class VtEmulator
 
 public:
     /** Constructs a new emulation */
-    VtEmulator(int lines, int columns);
+    VtEmulator(int lines, int columns, Screen::LineSaver lineSaver = nullptr);
     ~VtEmulator();
 
     // reimplemented from Emulation

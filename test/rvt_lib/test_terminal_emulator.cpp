@@ -148,3 +148,20 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_LT(0, terminal_emulator_write_buffer_integrity(emu, filename, "/a/a", 0664));
     BOOST_CHECK_LT(0, terminal_emulator_write_buffer(emu, "/a/a", 0664));
 }
+
+BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)
+{
+    char const * outfile = "/tmp/emu_transcript.txt";
+    BOOST_CHECK_EQUAL(ENOENT, terminal_emulator_transcript_from_ttyrec("aaa", outfile, 0664, 0));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_transcript_from_ttyrec("test/data/ttyrec1", outfile, 0664, 1));
+    BOOST_CHECK_EQUAL(get_file_contents(outfile), u8""
+        "2017-11-29 17:29:05 [2]~/projects/vt-emulator!4902$(nomove)✗ l               ~/projects/vt-emulator\n"
+        "2017-11-29 17:29:05 binding/  jam/     LICENSE   packaging/  redemption/  test/   typescript\n"
+        "2017-11-29 17:29:05 browser/  Jamroot  out_text  README.md   src/         tools/  vt-emulator.kdev4\n"
+        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-emulator\n"
+        "ols/  vt-emulator.kdev4\n"
+        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-emulator\n"
+        "                            \n"
+        "2017-11-29 15:35:45 [2]~/projects/vt-emulator!4901$(nomove)✗                                       ~\n"
+        "2017-11-29 15:35:46 /projects/vt-emulator\n");
+}

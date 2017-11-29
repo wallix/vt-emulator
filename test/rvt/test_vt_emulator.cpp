@@ -26,6 +26,7 @@
 #include "rvt/text_rendering.hpp"
 
 #include <fstream>
+#include <iostream>
 
 namespace rvt {
 
@@ -141,7 +142,22 @@ BOOST_AUTO_TEST_CASE(TestEmulator)
 
 BOOST_AUTO_TEST_CASE(TestEmulatorReplay1)
 {
-    rvt::VtEmulator emulator(57, 104);
+    std::string out;
+    auto line_saver = [&out](rvt::Screen const& screen, array_view<const rvt::Character> line){
+        for (auto const& ch : line) {
+            char buf[4];
+            if (ch.is_extended()) {
+                for (auto ucs : screen.extendedCharTable()[ch.character]) {
+                    out.append(buf, rvt::unsafe_ucs4_to_utf8(ucs, buf));
+                }
+            }
+            else {
+                out.append(buf, rvt::unsafe_ucs4_to_utf8(ch.character, buf));
+            }
+        }
+        out += '\n';
+    };
+    rvt::VtEmulator emulator(57, 104, line_saver);
     rvt::Utf8Decoder text_decoder;
     std::filebuf in;
     in.open("test/data/typescript1", std::ios::in);
@@ -220,4 +236,97 @@ BOOST_AUTO_TEST_CASE(TestEmulatorReplay1)
         "\n"
         "\033[0;38;2;238;238;238mScript done on 2017-11-28 11:33:08+0100\n"
         "\n");
+
+    BOOST_CHECK_EQUAL(out.size(), 3197u);
+    BOOST_CHECK_EQUAL(out, u8""
+        "Script started on 2017-11-28 11:32:57+0100\n"
+        "                                          %"
+        "                                                             \n"
+        "[2]~/projects/vt-emulator!4890$(master)✗  t                                      ~/projects/vt-emulator\n"
+        ".\n"
+        "├── binding\n"
+        "│   └── wallix_term.py\n"
+        "├── browser\n"
+        "│   ├── jquery.js\n"
+        "│   ├── screen.json\n"
+        "│   ├── tty-emulator\n"
+        "│   │   ├── html_rendering.js\n"
+        "│   │   └── player.css\n"
+        "│   └── view_browser.html\n"
+        "├── jam\n"
+        "│   ├── cxxflags.jam\n"
+        "│   └── testing.jam\n"
+        "├── Jamroot\n"
+        "├── LICENSE\n"
+        "├── packaging\n"
+        "│   ├── targets\n"
+        "│   │   ├── debian\n"
+        "│   │   └── ubuntu\n"
+        "│   └── template\n"
+        "│       └── debian\n"
+        "│           ├── changelog\n"
+        "│           ├── compat\n"
+        "│           ├── control\n"
+        "│           ├── copyright\n"
+        "│           ├── rules\n"
+        "│           └── vt-emulator.install\n"
+        "├── README.md\n"
+        "├── redemption\n"
+        "│   └── src\n"
+        "│       ├── cxx\n"
+        "│       │   ├── attributes.hpp\n"
+        "│       │   ├── diagnostic.hpp\n"
+        "│       │   ├── features.hpp\n"
+        "│       │   └── keyword.hpp\n"
+        "│       ├── system\n"
+        "│       │   └── linux\n"
+        "│       │       └── system\n"
+        "│       │           └── redemption_unit_tests.hpp\n"
+        "│       └── utils\n"
+        "│           └── sugar\n"
+        "│               ├── array.hpp\n"
+        "│               ├── array_view.hpp\n"
+        "│               ├── bytes_t.hpp\n"
+        "│               ├── enum_flags_operators.hpp\n"
+        "│               └── underlying_cast.hpp\n"
+        "├── src\n"
+        "│   ├── rvt\n"
+        "│   │   ├── character_color.hpp\n"
+        "│   │   ├── character.hpp\n"
+        "│   │   ├── char_class.hpp\n"
+        "│   │   ├── charsets.hpp\n"
+        "│   │   ├── color.hpp\n"
+        "│   │   ├── screen.cpp\n"
+        "│   │   ├── screen.hpp\n"
+        "│   │   ├── text_rendering.cpp\n"
+        "│   │   ├── text_rendering.hpp\n"
+        "│   │   ├── ucs.hpp\n"
+        "│   │   ├── utf8_decoder.hpp\n"
+        "│   │   ├── vt_emulator.cpp\n"
+        "│   │   └── vt_emulator.hpp\n"
+        "│   └── rvt_lib\n"
+        "│       ├── terminal_emulator.cpp\n"
+        "│       ├── terminal_emulator.hpp\n"
+        "│       └── version.hpp\n"
+        "├── test\n"
+        "│   ├── rvt\n"
+        "│   │   ├── test_character_color.cpp\n"
+        "│   │   ├── test_character.cpp\n"
+        "│   │   ├── test_char_class.cpp\n"
+        "│   │   ├── test_screen.cpp\n"
+        "│   │   ├── test_utf8_decoder.cpp\n"
+        "│   │   ├── test_vt_emulator.cpp\n"
+        "│   │   └── typescript\n"
+        "│   └── rvt_lib\n"
+        "│       └── test_terminal_emulator.cpp\n"
+        "├── tools\n"
+        "│   ├── tagger.sh\n"
+        "│   └── terminal_browser.cpp\n"
+        "├── typescript\n"
+        "└── vt-emulator.kdev4\n"
+        "\n"
+        "23 directories, 57 files\n"
+        "[2]~/projects/vt-emulator!4891$(master)✗                                         ~/projects/vt-emulator\n"
+        "\n"
+        "Script done on 2017-11-28 11:33:08+0100\n");
 }

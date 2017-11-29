@@ -119,14 +119,16 @@ public:
         COUNT_
     };
 
-    using saveLineFnType = std::function<void(Screen const&, array_view<const Character>)>;
+    using LineSaver = std::function<void(Screen const&, array_view<const Character>)>;
 
     /** Construct a new screen image of size @p lines by @p columns. */
-    Screen(strictly_positif lines, strictly_positif columns, saveLineFnType fn = nullptr);
+    Screen(strictly_positif lines, strictly_positif columns);
     ~Screen();
 
     Screen(const Screen&) = delete;
     Screen& operator=(const Screen&) = delete;
+
+    void setLineSaver(LineSaver lineSaver);
 
     // VT100/2 Operations
     // Cursor Movement
@@ -532,7 +534,7 @@ private:
     void saveLine() const;
     void saveLines(int topLine, int bottomLine) const;
 
-    saveLineFnType saveLineFn;
+    LineSaver _lineSaver;
 };
 
 }

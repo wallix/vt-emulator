@@ -331,3 +331,229 @@ int terminal_emulator_write_integrity(
     }
     return terminal_emulator_write_buffer_integrity(emu, filename, prefix_tmp_filename, mode);
 }
+
+
+REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
+    char const * infile, char const * outfile, int mode, int with_datetime
+) noexcept
+{
+    struct Fd
+    {
+        int fd;
+        ~Fd() { if (fd != -1) ::close(fd); }
+        operator int () { return fd; }
+    };
+
+    Fd fd_in { open(infile, O_RDONLY) };
+    if (fd_in == -1) {
+        return errno ? errno : -1;
+    }
+
+    int fd_out = 1;
+    Fd fd_out_{-1};
+    if (outfile && *outfile) {
+        fd_out = open(outfile, O_WRONLY | O_CREAT, mode);
+        fd_out_.fd = fd_out;
+        if (fd_out == -1) {
+            return errno ? errno : -1;
+        }
+    }
+
+    using Line = array_view<const rvt::Character>;
+
+    class Out
+    {
+        int const fd;
+        char buf[4096];
+
+    public:
+        char * pbuf = buf;
+        int err = 0;
+        time_t time;
+
+        Out(int fd) : fd{fd} {}
+
+        uint32_t remaining() const
+        {
+            return pbuf-buf;
+        }
+
+        void prepare(uint32_t n = 4)
+        {
+            if (sizeof(buf) - remaining() < n) {
+                if (write_all(fd, buf, remaining()) != remaining()) {
+                    err = errno;
+                }
+                pbuf = buf;
+            }
+        }
+
+        void finish()
+        {
+            if (write_all(fd, buf, remaining()) != remaining()) {
+                err = errno;
+            }
+        }
+
+        void write_time()
+        {
+            prepare(21);
+            struct tm tm;
+            pbuf += strftime(pbuf, 20, "%Y-%m-%d %H:%M:%S", localtime_r(&time, &tm));
+            *pbuf = ' ';
+            ++pbuf;
+        }
+
+        void write_line(rvt::Screen const& screen, Line line)
+        {
+            for (auto const& ch : line) {
+                if (ch.is_extended()) {
+                    for (auto ucs : screen.extendedCharTable()[ch.character]) {
+                        prepare();
+                        pbuf += rvt::unsafe_ucs4_to_utf8(ucs, pbuf);
+                    }
+                }
+                else {
+                    prepare();
+                    pbuf += rvt::unsafe_ucs4_to_utf8(ch.character, pbuf);
+                }
+            }
+            prepare(1);
+            *pbuf = '\n';
+            ++pbuf;
+        }
+    };
+
+    Out out{fd_out};
+    auto line_saver = [&out](rvt::Screen const& screen, Line line){
+        out.write_line(screen, line);
+    };
+    auto line_saver_with_datetime = [&out](rvt::Screen const& screen, Line line){
+        out.write_time();
+        out.write_line(screen, line);
+    };
+
+    class In
+    {
+        int fd;
+        char buf[4096];
+        char * pbuf = buf;
+        char * ebuf = buf;
+
+    public:
+        int err = 0;
+
+        In(int fd) : fd(fd) {}
+
+        uint32_t remaining() const
+        {
+            return uint32_t(ebuf-pbuf);
+        }
+
+        char * data() const
+        {
+            return pbuf;
+        }
+
+        const_bytes_array advance(uint32_t n)
+        {
+            const_bytes_array r{data(), n};
+            pbuf += n;
+            return r;
+        }
+
+        bool read(uint32_t n)
+        {
+            if (n > remaining()) {
+                memmove(buf, pbuf, remaining());
+                ebuf = pbuf;
+                pbuf = buf;
+                do {
+                    if (!read_impl()) {
+                        return false;
+                    }
+                } while (n > remaining());
+            }
+            return true;
+        }
+
+        bool reset_and_read()
+        {
+            pbuf = buf;
+            ebuf = buf;
+            return read_impl();
+        }
+
+    private:
+        bool read_impl()
+        {
+            for (;;) {
+                ssize_t len = ::read(fd, ebuf, sizeof(buf) - (ebuf-buf));
+                if (len <= 0) {
+                    if (len == 0) {
+                        return false;
+                    }
+                    if (errno == EINTR){
+                        continue;
+                    }
+                    err = errno ? errno : -1;
+                    return false;
+                }
+                ebuf += len;
+                break;
+            }
+            return true;
+        }
+    };
+
+    In in{fd_in};
+
+    try {
+        rvt::VtEmulator emu(20, 80,
+            (with_datetime)
+            ? rvt::Screen::LineSaver(line_saver_with_datetime)
+            : rvt::Screen::LineSaver(line_saver));
+        rvt::Utf8Decoder decoder;
+        auto ucs_receiver = [&emu](rvt::ucs4_char ucs) { emu.receiveChar(ucs); };
+        for (; !in.err;) {
+            if (!in.read(12)) {
+                break;
+            }
+
+            auto arr = in.advance(12);
+            uint32_t const sec  = arr[0] | (arr[1] << 8) | (arr[ 2] << 16) | (arr[ 3] << 24);
+            uint32_t const usec = arr[4] | (arr[5] << 8) | (arr[ 6] << 16) | (arr[ 7] << 24);
+            uint32_t frame_len  = arr[8] | (arr[9] << 8) | (arr[10] << 16) | (arr[11] << 24);
+            out.time = sec + (usec / 1000000);
+
+            if (frame_len > in.remaining()) {
+                bool r;
+                do {
+                    decoder.decode(const_bytes_array(in.data(), in.remaining()), ucs_receiver);
+                    frame_len -= in.remaining();
+                } while ((r = in.reset_and_read()) && frame_len > in.remaining());
+                if (!r) {
+                    return in.err;
+                }
+            }
+            decoder.decode(in.advance(frame_len), ucs_receiver);
+
+            if (out.err) {
+                return out.err;
+            }
+        }
+        if (in.err) {
+            return in.err;
+        }
+        decoder.end_decode(ucs_receiver);
+    }
+    catch (...) {
+        return errno ? errno : -1;
+    }
+
+    if (!out.err) {
+        out.finish();
+    }
+
+    return out.err ? out.err : 0;
+}

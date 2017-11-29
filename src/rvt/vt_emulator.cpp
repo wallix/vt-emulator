@@ -35,46 +35,16 @@
 #include <fstream>
 #include "rvt/utf8_decoder.hpp"
 
-namespace
-{
-    std::ofstream outfile;
-
-    void outFn(rvt::Screen const& screen, array_view<const rvt::Character> lines, void* /*ctx*/)
-    {
-        for (auto const& ch : lines) {
-            if (ch.isRealCharacter) {
-                char buf[4];
-                if (ch.is_extended()) {
-                    auto const & extended_char_table = screen.extendedCharTable();
-                    for (rvt::ucs4_char ucs : extended_char_table[ch.character]) {
-                        auto len = rvt::unsafe_ucs4_to_utf8(ucs, buf);
-                        outfile.write(buf, len);
-                    }
-                }
-                else {
-                    auto len = rvt::unsafe_ucs4_to_utf8(ch.character, buf);
-                    outfile.write(buf, len);
-                }
-            }
-            else {
-                outfile.write(" ", 1);
-            }
-        }
-        outfile.write("\n", 1);
-    }
-}
-
 namespace rvt
 {
 
-VtEmulator::VtEmulator(int lines, int columns)
-: _screen0{lines, columns, [this](Screen const& screen, array_view<const Character> lines){
-    outFn(screen, lines, this); }}
-, _screen1{lines, columns, [this](Screen const& screen, array_view<const Character> lines){
-    outFn(screen, lines, this); }}
+VtEmulator::VtEmulator(int lines, int columns, Screen::LineSaver lineSaver)
+: _screen0{lines, columns}
+, _screen1{lines, columns}
 {
-    outfile.open("out_text", std::ios::trunc);
     reset();
+    _screen0.setLineSaver(lineSaver);
+    _screen1.setLineSaver(std::move(lineSaver));
 }
 
 VtEmulator::~VtEmulator() = default;

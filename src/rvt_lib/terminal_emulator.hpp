@@ -79,6 +79,11 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write(
 REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
     TerminalEmulator *, OutputFormat, char const * extra_data,
     char const * filename, char const * prefix_tmp_filename, int mode) noexcept;
+
+/// \brief Generate a transcript file of session recorded by ttyrec
+/// \param outfile  output file or stdout if empty/null
+REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
+    char const * infile, char const * outfile, int mode, int with_datetime) noexcept;
 //END write
 
 //@}
