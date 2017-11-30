@@ -470,6 +470,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
 
         const_bytes_array advance(uint32_t n)
         {
+            assert(n <= remaining());
             const_bytes_array r{data(), n};
             pbuf += n;
             return r;
@@ -478,9 +479,10 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
         bool read(uint32_t n)
         {
             if (n > remaining()) {
-                memmove(buf, pbuf, remaining());
-                ebuf = pbuf;
+                auto const len = remaining();
+                memmove(buf, pbuf, len);
                 pbuf = buf;
+                ebuf = buf + len;
                 do {
                     if (!read_impl()) {
                         return false;
@@ -492,6 +494,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
 
         bool reset_and_read()
         {
+            assert(pbuf == ebuf);
             pbuf = buf;
             ebuf = buf;
             return read_impl();
@@ -528,11 +531,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
             : rvt::Screen::LineSaver(line_saver));
         rvt::Utf8Decoder decoder;
         auto ucs_receiver = [&emu](rvt::ucs4_char ucs) { emu.receiveChar(ucs); };
-        for (; !in.err;) {
-            if (!in.read(12)) {
-                break;
-            }
-
+        while (!in.err && in.read(12)) {
             auto arr = in.advance(12);
             uint32_t const sec  = arr[0] | (arr[1] << 8) | (arr[ 2] << 16) | (arr[ 3] << 24);
             uint32_t const usec = arr[4] | (arr[5] << 8) | (arr[ 6] << 16) | (arr[ 7] << 24);
@@ -542,8 +541,8 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
             if (frame_len > in.remaining()) {
                 bool r;
                 do {
-                    decoder.decode(const_bytes_array(in.data(), in.remaining()), ucs_receiver);
                     frame_len -= in.remaining();
+                    decoder.decode(in.advance(in.remaining()), ucs_receiver);
                 } while ((r = in.reset_and_read()) && frame_len > in.remaining());
                 if (!r) {
                     return in.err;
