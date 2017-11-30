@@ -20,14 +20,39 @@
 
 #pragma once
 
+#define REDEMPTION_VERSION_NUMBER(major, minor, patch) \
+  ( (((major)%100)*10000000) + (((minor)%100)*100000) + ((patch)%100000) )
+
+#define REDEMPTION_VERSION_NUMBER_NOT_AVAILABLE 0
+
+// Gcc
+
+#ifdef __GNUC__
+# ifdef __GNUC_PATCHLEVEL__
+#   define REDEMPTION_COMP_GNUC REDEMPTION_VERSION_NUMBER( \
+      __GNUC__,                                    \
+      __GNUC_MINOR__,                              \
+      __GNUC_PATCHLEVEL__)
+# else
+#   define REDEMPTION_COMP_GNUC REDEMPTION_VERSION_NUMBER( \
+      __GNUC__,                                    \
+      __GNUC_MINOR__,                              \
+      0)
+# endif
+#else
+# define REDEMPTION_COMP_GNUC REDEMPTION_VERSION_NUMBER_NOT_AVAILABLE
+#endif
+
 #ifdef __has_cpp_attribute
 # define REDEMPTION_CXX_HAS_ATTRIBUTE(attr) __has_cpp_attribute(attr)
 #else
 # define REDEMPTION_CXX_HAS_ATTRIBUTE(attr) 0
 #endif
 
+
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0188r1.pdf
-#if REDEMPTION_CXX_HAS_ATTRIBUTE(fallthrough)
+#if (__cplusplus > REDEMPTION_CXX_STD_14 && REDEMPTION_CXX_HAS_ATTRIBUTE(fallthrough)) \
+ || ( REDEMPTION_COMP_GNUC >= REDEMPTION_VERSION_NUMBER(7, 1, 0))
 #  define REDEMPTION_CXX_FALLTHROUGH [[fallthrough]]
 #elif defined(__clang__)
 #  define REDEMPTION_CXX_FALLTHROUGH [[clang::fallthrough]]
