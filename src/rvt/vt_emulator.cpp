@@ -1059,7 +1059,7 @@ static std::string hexdump2(ucs4_char const * s, int len)
         if (s[i] == '\\')
             std::snprintf(dump, sizeof(dump), "%s", "\\\\");
         else if ((s[i]) > 32 && s[i] < 127)
-            std::snprintf(dump, sizeof(dump), "%c", s[i]);
+            std::snprintf(dump, sizeof(dump), "%c", char(s[i]));
         else
             std::snprintf(dump, sizeof(dump), "\\x%04x(hex)", s[i]);
         returnDump.append(dump);
