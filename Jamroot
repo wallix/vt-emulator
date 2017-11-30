@@ -16,6 +16,7 @@ project vt_emulator
     <include>$(PROJECT_PATH)/redemption/src
     <include>$(PROJECT_PATH)/redemption/src/system/linux
 
+    <conditional>@flags
     <cxxflags>-std=c++11
 
     $(CXXFLAGS)
