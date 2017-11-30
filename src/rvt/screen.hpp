@@ -119,7 +119,7 @@ public:
         COUNT_
     };
 
-    using LineSaver = std::function<void(Screen const&, array_view<const Character>)>;
+    using LineSaver = std::function<void(Screen const&, size_t y, size_t yend)>;
 
     /** Construct a new screen image of size @p lines by @p columns. */
     Screen(strictly_positif lines, strictly_positif columns);
@@ -445,6 +445,14 @@ public:
 
     static const Character DefaultChar;
 
+    using ImageLine = std::vector<Character> ; // [0..columns]
+
+    array_view<const LineProperty> getLineProperties() const;
+
+    array_view<const ImageLine> getScreenLines() const;
+
+    ExtendedCharTable const & extendedCharTable() const;
+
 private:
     //fills a section of the screen image with the character 'c'
     //the parameters are specified as offsets from the start of the screen image.
@@ -471,15 +479,7 @@ private:
     int _lines;
     int _columns;
 
-    using ImageLine = std::vector<Character> ; // [0..columns]
     std::vector<ImageLine> _screenLines;       // [lines]
-
-public:
-    array_view<const ImageLine> getScreenLines() const
-    { return array_view<const ImageLine>{_screenLines.data(), std::size_t(_lines)};  }
-
-    ExtendedCharTable const & extendedCharTable() const
-    { return _extendedCharTable;  }
 
 private:
     array_view<ImageLine> getMutableScreenLines()

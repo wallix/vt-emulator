@@ -417,33 +417,55 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
             ++pbuf;
         }
 
-        void write_line(rvt::Screen const& screen, Line line)
+        void write_line(rvt::Screen const& screen, size_t y, size_t yend)
         {
-            for (auto const& ch : line) {
-                if (ch.is_extended()) {
-                    for (auto ucs : screen.extendedCharTable()[ch.character]) {
+            auto write_line_impl = [&](Line line){
+                for (auto const& ch : line) {
+                    if (ch.is_extended()) {
+                        for (auto ucs : screen.extendedCharTable()[ch.character]) {
+                            prepare();
+                            pbuf += rvt::unsafe_ucs4_to_utf8(ucs, pbuf);
+                        }
+                    }
+                    else {
                         prepare();
-                        pbuf += rvt::unsafe_ucs4_to_utf8(ucs, pbuf);
+                        pbuf += rvt::unsafe_ucs4_to_utf8(ch.character, pbuf);
                     }
                 }
-                else {
-                    prepare();
-                    pbuf += rvt::unsafe_ucs4_to_utf8(ch.character, pbuf);
-                }
+            };
+
+            auto const&& lines = screen.getScreenLines();
+            auto const&& lineProperties = screen.getLineProperties();
+            constexpr auto wrapped = rvt::LineProperty::Wrapped;
+            while (y && bool(lineProperties[y-1] & wrapped)) {
+                --y;
             }
-            prepare(1);
-            *pbuf = '\n';
-            ++pbuf;
+            while (y < yend) {
+                write_line_impl(lines[y]);
+                if (bool(lineProperties[y] & wrapped)) {
+                    while (++y < lines.size()) {
+                        write_line_impl(lines[y]);
+                        if (!bool(lineProperties[y] & wrapped)) {
+                            break;
+                        }
+                    }
+                }
+                ++y;
+
+                prepare(1);
+                *pbuf = '\n';
+                ++pbuf;
+            }
         }
     };
 
     Out out{fd_out};
-    auto line_saver = [&out](rvt::Screen const& screen, Line line){
-        out.write_line(screen, line);
+    auto line_saver = [&out](rvt::Screen const& screen, size_t y, size_t yend){
+        out.write_line(screen, y, yend);
     };
-    auto line_saver_with_datetime = [&out](rvt::Screen const& screen, Line line){
+    auto line_saver_with_datetime = [&out](rvt::Screen const& screen, size_t y, size_t yend){
         out.write_time();
-        out.write_line(screen, line);
+        out.write_line(screen, y, yend);
     };
 
     class In
@@ -534,9 +556,9 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
         while (!in.err && in.read(12)) {
             auto arr = in.advance(12);
             uint32_t const sec  = arr[0] | (arr[1] << 8) | (arr[ 2] << 16) | (arr[ 3] << 24);
-            uint32_t const usec = arr[4] | (arr[5] << 8) | (arr[ 6] << 16) | (arr[ 7] << 24);
+            //uint32_t const usec = arr[4] | (arr[5] << 8) | (arr[ 6] << 16) | (arr[ 7] << 24);
             uint32_t frame_len  = arr[8] | (arr[9] << 8) | (arr[10] << 16) | (arr[11] << 24);
-            out.time = sec + (usec / 1000000);
+            out.time = sec /*+ (usec / 1000000)*/;
 
             if (frame_len > in.remaining()) {
                 bool r;

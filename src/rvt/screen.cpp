@@ -73,6 +73,21 @@ Screen::Screen(strictly_positif lines, strictly_positif columns):
 
 Screen::~Screen() = default;
 
+array_view<const LineProperty> Screen::getLineProperties() const
+{
+    return _lineProperties;
+}
+
+array_view<const Screen::ImageLine> Screen::getScreenLines() const
+{
+    return {_screenLines.data(), std::size_t(_lines)};
+}
+
+ExtendedCharTable const & Screen::extendedCharTable() const
+{
+    return _extendedCharTable;
+}
+
 void Screen::setLineSaver(LineSaver lineSaver)
 {
     this->_lineSaver = std::move(lineSaver);
@@ -81,16 +96,14 @@ void Screen::setLineSaver(LineSaver lineSaver)
 void Screen::saveLine() const
 {
     if (this->_lineSaver) {
-        this->_lineSaver(*this, this->_screenLines[_cuY]);
+        this->_lineSaver(*this, size_t(_cuY), size_t(_cuY+1u));
     }
 }
 
 void Screen::saveLines(int topLine, int bottomLine) const
 {
     if (this->_lineSaver) {
-        for (int y = topLine; y <= bottomLine; y++) {
-            this->_lineSaver(*this, this->_screenLines[y]);
-        }
+        this->_lineSaver(*this, size_t(topLine), size_t(bottomLine+1));
     }
 }
 

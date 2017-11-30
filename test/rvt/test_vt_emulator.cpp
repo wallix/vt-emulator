@@ -143,19 +143,22 @@ BOOST_AUTO_TEST_CASE(TestEmulator)
 BOOST_AUTO_TEST_CASE(TestEmulatorReplay1)
 {
     std::string out;
-    auto line_saver = [&out](rvt::Screen const& screen, array_view<const rvt::Character> line){
-        for (auto const& ch : line) {
-            char buf[4];
-            if (ch.is_extended()) {
-                for (auto ucs : screen.extendedCharTable()[ch.character]) {
-                    out.append(buf, rvt::unsafe_ucs4_to_utf8(ucs, buf));
+    auto line_saver = [&out](rvt::Screen const& screen, size_t y, size_t yend){
+        auto const&& lines = screen.getScreenLines();
+        for (; y < yend; ++y) {
+            for (auto const& ch : lines[y]) {
+                char buf[4];
+                if (ch.is_extended()) {
+                    for (auto ucs : screen.extendedCharTable()[ch.character]) {
+                        out.append(buf, rvt::unsafe_ucs4_to_utf8(ucs, buf));
+                    }
+                }
+                else {
+                    out.append(buf, rvt::unsafe_ucs4_to_utf8(ch.character, buf));
                 }
             }
-            else {
-                out.append(buf, rvt::unsafe_ucs4_to_utf8(ch.character, buf));
-            }
+            out += '\n';
         }
-        out += '\n';
     };
     rvt::VtEmulator emulator(57, 104, line_saver);
     rvt::Utf8Decoder text_decoder;
