@@ -58,6 +58,8 @@ inline std::string get_file_contents(const char * name)
 using rvt_lib::TerminalEmulator;
 using rvt_lib::OutputFormat;
 
+constexpr auto force_create = CreateFileMode::force_create;
+
 struct TerminalEmulatorDeleter
 {
     void operator()(TerminalEmulator * p) noexcept
@@ -97,7 +99,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(contents, get_file_contents(filename));
     BOOST_CHECK_EQUAL(0, unlink(filename));
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_write_buffer(emu, filename, 0664));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_write_buffer(emu, filename, 0664, force_create));
     BOOST_CHECK_EQUAL(contents, get_file_contents(filename));
     BOOST_CHECK_EQUAL(0, unlink(filename));
 
@@ -134,7 +136,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function(nullptr, [](char const *) {}));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_set_title(nullptr, "Lib test"));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_feed(nullptr, "\033[324a", 6));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_write_buffer(nullptr, filename, 0664));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_write_buffer(nullptr, filename, 0664, force_create));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_write_buffer_integrity(nullptr, filename, filename, 0664));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_prepare(nullptr, OutputFormat::json, nullptr));
     BOOST_CHECK_EQUAL("", terminal_emulator_buffer_data(nullptr));
@@ -146,22 +148,18 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
 
     BOOST_CHECK_LT(0, terminal_emulator_write_buffer_integrity(emu, "/a/a", filename, 0664));
     BOOST_CHECK_LT(0, terminal_emulator_write_buffer_integrity(emu, filename, "/a/a", 0664));
-    BOOST_CHECK_LT(0, terminal_emulator_write_buffer(emu, "/a/a", 0664));
+    BOOST_CHECK_LT(0, terminal_emulator_write_buffer(emu, "/a/a", 0664, force_create));
 }
 
 BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)
 {
     char const * outfile = "/tmp/emu_transcript.txt";
-    BOOST_CHECK_EQUAL(ENOENT, terminal_emulator_transcript_from_ttyrec("aaa", outfile, 0664, 0));
-    BOOST_CHECK_EQUAL(0, terminal_emulator_transcript_from_ttyrec("test/data/ttyrec1", outfile, 0664, 1));
+    BOOST_CHECK_EQUAL(ENOENT, terminal_emulator_transcript_from_ttyrec("aaa", outfile, 0664, force_create, TranscriptPrefix::datetime));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_transcript_from_ttyrec("test/data/ttyrec1", outfile, 0664, force_create, TranscriptPrefix::datetime));
     BOOST_CHECK_EQUAL(get_file_contents(outfile), u8""
         "2017-11-29 17:29:05 [2]~/projects/vt-emulator!4902$(nomove)✗ l               ~/projects/vt-emulator\n"
         "2017-11-29 17:29:05 binding/  jam/     LICENSE   packaging/  redemption/  test/   typescript\n"
         "2017-11-29 17:29:05 browser/  Jamroot  out_text  README.md   src/         tools/  vt-emulator.kdev4\n"
-        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-emulator\n"
-        "ols/  vt-emulator.kdev4\n"
-        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-emulator\n"
-        "                            \n"
-        "2017-11-29 15:35:45 [2]~/projects/vt-emulator!4901$(nomove)✗                                       ~\n"
-        "2017-11-29 15:35:46 /projects/vt-emulator\n");
+        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-emulator\n");
+    BOOST_CHECK_EQUAL(EEXIST, terminal_emulator_transcript_from_ttyrec("test/data/ttyrec1", outfile, 0664, CreateFileMode::fail_if_exists, TranscriptPrefix::datetime));
 }

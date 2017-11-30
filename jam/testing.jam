@@ -1,6 +1,11 @@
 import testing ;
 
-lib libunit_test : $(PROJECT_PATH)/redemption/src/system/linux/system/test_framework.cpp : <link>shared ;
+lib libunit_test :
+    $(PROJECT_PATH)/redemption/src/system/linux/system/test_framework.cpp
+:
+    <link>shared
+    <cxxflags>-frtti
+;
 # lib libboost_unit_test : : <name>boost_unit_test_framework <link>shared ;
 
 constant TEST_DEPENDENCIES :

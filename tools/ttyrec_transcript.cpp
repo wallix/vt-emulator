@@ -24,5 +24,7 @@
 
 int main(int ac, char ** av)
 {
-    terminal_emulator_transcript_from_ttyrec(ac == 2 ? av[1] : "/dev/stdin", nullptr, 0664, 1);
+    terminal_emulator_transcript_from_ttyrec(
+        ac == 2 ? av[1] : "/dev/stdin", nullptr, 0664,
+        CreateFileMode::force_create, TranscriptPrefix::datetime);
 }

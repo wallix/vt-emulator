@@ -30,10 +30,22 @@ namespace rvt_lib
         json,
         ansi
     };
+
+    enum class TranscriptPrefix : int {
+        noprefix,
+        datetime,
+    };
+
+    enum class CreateFileMode : int {
+        fail_if_exists,
+        force_create,
+    };
 }
 
 using rvt_lib::TerminalEmulator;
 using rvt_lib::OutputFormat;
+using rvt_lib::TranscriptPrefix;
+using rvt_lib::CreateFileMode;
 
 /// \return  0 if success, -2 if bad argument (emu is null, bad format, bad size, etc), -1 if internal error with `errno` code to 0 (bad alloc, etc) and > 0 is an `errno` code
 //@{
@@ -45,10 +57,13 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_deinit(TerminalEmulator *) noexcept;
 //END ctor/dtor
 
 //BEGIN log
+using LogFunction = void(*)(char const *);
+using LogFunctionCtx = void(*)(void *, char const *);
+
 REDEMPTION_LIB_EXTERN int terminal_emulator_set_log_function(
-    TerminalEmulator *, void(* log_func)(char const *)) noexcept;
+    TerminalEmulator *, LogFunction) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_set_log_function_ctx(
-    TerminalEmulator *, void(* log_func)(void *, char const *), void * ctx) noexcept;
+    TerminalEmulator *, LogFunctionCtx, void * ctx) noexcept;
 //END log
 
 //BEGIN emulator
@@ -68,13 +83,13 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_buffer_reset(TerminalEmulator *) noe
 
 //BEGIN write
 REDEMPTION_LIB_EXTERN int terminal_emulator_write_buffer(
-    TerminalEmulator const *, char const * filename, int mode) noexcept;
+    TerminalEmulator const *, char const * filename, int mode, CreateFileMode) noexcept;
 REDEMPTION_LIB_EXTERN int terminal_emulator_write_buffer_integrity(
     TerminalEmulator const *, char const * filename, char const * prefix_tmp_filename, int mode) noexcept;
 /// \brief terminal_emulator_buffer_prepare then terminal_emulator_write_buffer
 REDEMPTION_LIB_EXTERN int terminal_emulator_write(
     TerminalEmulator *, OutputFormat, char const * extra_data,
-    char const * filename, int mode) noexcept;
+    char const * filename, int mode, CreateFileMode) noexcept;
 /// \brief terminal_emulator_buffer_prepare then terminal_emulator_write_buffer_integrity
 REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
     TerminalEmulator *, OutputFormat, char const * extra_data,
@@ -83,7 +98,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_write_integrity(
 /// \brief Generate a transcript file of session recorded by ttyrec
 /// \param outfile  output file or stdout if empty/null
 REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
-    char const * infile, char const * outfile, int mode, int with_datetime) noexcept;
+    char const * infile, char const * outfile, int mode, CreateFileMode, TranscriptPrefix) noexcept;
 //END write
 
 //@}

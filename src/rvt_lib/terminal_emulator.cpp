@@ -188,7 +188,7 @@ int terminal_emulator_set_title(TerminalEmulator * emu, char const * title) noex
 
 REDEMPTION_LIB_EXTERN
 int terminal_emulator_set_log_function(
-    TerminalEmulator * emu, void(*log_func)(char const*)
+    TerminalEmulator * emu, LogFunction log_func
 ) noexcept
 {
     return_if(!emu);
@@ -199,7 +199,7 @@ int terminal_emulator_set_log_function(
 
 REDEMPTION_LIB_EXTERN
 int terminal_emulator_set_log_function_ctx(
-    TerminalEmulator * emu, void(*log_func)(void *, char const *), void * ctx
+    TerminalEmulator * emu, LogFunctionCtx log_func, void * ctx
 ) noexcept
 {
     return_if(!emu);
@@ -243,16 +243,28 @@ int terminal_emulator_buffer_prepare(
     return build_format_string(*emu, format, emu->str, extra_data);
 }
 
+namespace
+{
+    int create_file_mode(CreateFileMode create_mode) noexcept
+    {
+        switch (create_mode)
+        {
+            case CreateFileMode::force_create: return O_TRUNC | O_CREAT;
+            case CreateFileMode::fail_if_exists: return O_EXCL | O_CREAT;
+        }
+        return 0;
+    }
+}
 
 REDEMPTION_LIB_EXTERN
 int terminal_emulator_write_buffer(
-    TerminalEmulator const * emu, char const * filename, int mode
+    TerminalEmulator const * emu, char const * filename, int mode, CreateFileMode create_mode
 ) noexcept
 {
     return_if(!emu);
     return_if(!filename);
 
-    int fd = ::open(filename, O_WRONLY | O_CREAT, mode);
+    int fd = ::open(filename, O_WRONLY | create_file_mode(create_mode), mode);
     return_errno_if(fd == -1);
 
     std::string const & out = emu->str;
@@ -309,14 +321,14 @@ int terminal_emulator_write_buffer_integrity(
 REDEMPTION_LIB_EXTERN
 int terminal_emulator_write(
     TerminalEmulator * emu, OutputFormat format, char const * extra_data,
-    char const * filename, int mode
+    char const * filename, int mode, CreateFileMode create_mode
 ) noexcept
 {
     return_if(!filename);
     if (int err = terminal_emulator_buffer_prepare(emu, format, extra_data)) {
         return err;
     }
-    return terminal_emulator_write_buffer(emu, filename, mode);
+    return terminal_emulator_write_buffer(emu, filename, mode, create_mode);
 }
 
 REDEMPTION_LIB_EXTERN
@@ -334,7 +346,8 @@ int terminal_emulator_write_integrity(
 
 
 REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
-    char const * infile, char const * outfile, int mode, int with_datetime
+    char const * infile, char const * outfile, int mode,
+    CreateFileMode create_mode, TranscriptPrefix prefix
 ) noexcept
 {
     struct Fd
@@ -352,7 +365,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
     int fd_out = 1;
     Fd fd_out_{-1};
     if (outfile && *outfile) {
-        fd_out = open(outfile, O_WRONLY | O_CREAT, mode);
+        fd_out = open(outfile, O_WRONLY | create_file_mode(create_mode), mode);
         fd_out_.fd = fd_out;
         if (fd_out == -1) {
             return errno ? errno : -1;
@@ -510,7 +523,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
 
     try {
         rvt::VtEmulator emu(20, 80,
-            (with_datetime)
+            (prefix == TranscriptPrefix::datetime)
             ? rvt::Screen::LineSaver(line_saver_with_datetime)
             : rvt::Screen::LineSaver(line_saver));
         rvt::Utf8Decoder decoder;
