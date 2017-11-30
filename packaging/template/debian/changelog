@@ -1,3 +1,10 @@
+vt-emulator (2.0.0%TARGET_NAME%) %PKG_DISTRIBUTION%; urgency=low
+
+  * Add create file mode: fail if already exists or create if does not exist.
+
+
+ -- WAB Dev Team <wab@wallix.com>  Thu, 30 Nov 2017 15:30:26 +0200
+
 vt-emulator (1.1.0%TARGET_NAME%) %PKG_DISTRIBUTION%; urgency=low
 
   * - new function: terminal_emulator_transcript_from_ttyrec: generate a transcript file of session recorded by ttyrec
