@@ -153,6 +153,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
 
 BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)
 {
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);          // for localtime_r
     char const * outfile = "/tmp/emu_transcript.txt";
     BOOST_CHECK_EQUAL(ENOENT, terminal_emulator_transcript_from_ttyrec("aaa", outfile, 0664, force_create, TranscriptPrefix::datetime));
     BOOST_CHECK_EQUAL(0, terminal_emulator_transcript_from_ttyrec("test/data/ttyrec1", outfile, 0664, force_create, TranscriptPrefix::datetime));
@@ -166,6 +167,7 @@ BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)
 
 BOOST_AUTO_TEST_CASE(TestEmulatorTranscriptBigFile)
 {
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);          // for localtime_r
     char const * outfile = "/tmp/emu_transcript.txt";
     BOOST_CHECK_EQUAL(0, terminal_emulator_transcript_from_ttyrec(
         "test/data/debian.ttyrec", outfile, 0664, force_create, TranscriptPrefix::datetime));

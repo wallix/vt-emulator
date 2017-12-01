@@ -485,15 +485,11 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
             return uint32_t(ebuf-pbuf);
         }
 
-        char * data() const
-        {
-            return pbuf;
-        }
-
         const_bytes_array advance(uint32_t n)
         {
             assert(n <= remaining());
-            const_bytes_array r{data(), n};
+            assert(pbuf + n <= buf + sizeof(buf));
+            const_bytes_array r{pbuf, n};
             pbuf += n;
             return r;
         }
