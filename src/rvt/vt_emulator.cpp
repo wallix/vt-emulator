@@ -214,6 +214,9 @@ void VtEmulator::addToCurrentToken(ucs4_char cc)
 #define Xpe        (tokenBufferPos >= 2 && tokenBuffer[1] == ']')
 #define Xte        (Xpe      && (cc ==  7 || cc == 27))
 #define ces(C)     (cc < 256 && (charClass[cc] & (C)) == (C) && !Xte)
+#define dcs()      (p >= 2 && s[1] == 'P')
+#define pm()       (p >= 2 && s[1] == '^')
+#define apc()      (p >= 2 && s[1] == '_')
 
 #define CNTL(c) ((c)-'@')
 const int ESC = 27;
@@ -224,14 +227,6 @@ void VtEmulator::receiveChar(ucs4_char cc)
 {
     if (cc == DEL)
         return; //VT100: ignore.
-
-    // DCS, PM, APC  (IGNORED) XTerm
-    if (tokenBufferPos == 2 && (tokenBuffer[1] == 'P' || tokenBuffer[1] == '^' || tokenBuffer[1] == '_')) {
-        if (cc == '\\') {
-            resetTokenizer();
-        }
-        return ;
-    }
 
     if (ces(CTL))
     {
@@ -260,9 +255,10 @@ void VtEmulator::receiveChar(ucs4_char cc)
         if (les(2,1,GRP)) { return; }
         if (Xte         ) { processWindowAttributeRequest(); resetTokenizer(); return; }
         if (Xpe         ) { return; }
-        if (lec(2,1,'P')) { return; }
-        if (lec(2,1,'^')) { return; }
-        if (lec(2,1,'_')) { return; }
+        if (lec(2,1,'\\')) { resetTokenizer(); return; } // string terminator (Xte)
+        if (dcs()) { if (cc == '\\') { resetTokenizer(); } return; } // (IGNORED) XTerm
+        if ( pm()) { if (cc == '\\') { resetTokenizer(); } return; } // (IGNORED) XTerm
+        if (apc()) { if (cc == '\\') { resetTokenizer(); } return; } // (IGNORED) XTerm
         if (lec(3,2,'?')) { return; }
         if (lec(3,2,'>')) { return; }
         if (lec(3,2,'!')) { return; }
