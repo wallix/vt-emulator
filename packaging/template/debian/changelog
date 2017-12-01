@@ -1,3 +1,10 @@
+vt-emulator (2.0.2%TARGET_NAME%) %PKG_DISTRIBUTION%; urgency=low
+
+  * fix overflow to Utf8Decoder::decode
+
+
+ -- WAB Dev Team <wab@wallix.com>  Fri, 01 Dec 2017 14:35:21 +0200
+
 vt-emulator (2.0.1%TARGET_NAME%) %PKG_DISTRIBUTION%; urgency=low
 
   * fix output corruption to terminal_emulator_transcript_from_ttyrec
