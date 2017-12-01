@@ -212,7 +212,7 @@ void VtEmulator::addToCurrentToken(ucs4_char cc)
 #define epe( )     (p >=  3  && s[2] == '!')
 #define egt( )     (p >=  3  && s[2] == '>')
 #define Xpe        (tokenBufferPos >= 2 && tokenBuffer[1] == ']')
-#define Xte        (Xpe      && cc ==  7 )
+#define Xte        (Xpe      && (cc ==  7 || cc == 27))
 #define ces(C)     (cc < 256 && (charClass[cc] & (C)) == (C) && !Xte)
 
 #define CNTL(c) ((c)-'@')
@@ -226,7 +226,7 @@ void VtEmulator::receiveChar(ucs4_char cc)
         return; //VT100: ignore.
 
     // DCS, PM, APC  (IGNORED) XTerm
-    if (tokenBufferPos == 2 && (tokenBuffer[1] == 'P' || tokenBuffer[1] =='^' || tokenBuffer[1] == '_')) {
+    if (tokenBufferPos == 2 && (tokenBuffer[1] == 'P' || tokenBuffer[1] == '^' || tokenBuffer[1] == '_')) {
         if (cc == '\\') {
             resetTokenizer();
         }
