@@ -84,11 +84,11 @@ BOOST_AUTO_TEST_CASE(TestUtf8Decoder)
 
     BOOST_CHECK_EQUAL_RANGES(
         decoder.decode(cstr_array_view("\xb7p\xc3\xc7"), Accu()).v,
-        utils::make_array<rvt::ucs4_char>(0xb7, 'p', 0xc3, 0xc7)
+        utils::make_array<rvt::ucs4_char>(0xb7, 'p', 0xc3)
     );
     BOOST_CHECK_EQUAL_RANGES(
         decoder.end_decode(Accu()).v,
-        utils::make_array<rvt::ucs4_char>()
+        utils::make_array<rvt::ucs4_char>(0xc7)
     );
 
     BOOST_CHECK_EQUAL_RANGES(
@@ -127,6 +127,19 @@ BOOST_AUTO_TEST_CASE(TestUtf8Decoder)
     BOOST_CHECK_EQUAL_RANGES(
         decoder.decode(cstr_array_view("\xfa\xb0\x80""ab"), Accu()).v,
         utils::make_array<rvt::ucs4_char>(0xfa, 0xb0, 0x80, 'a', 'b')
+    );
+    BOOST_CHECK_EQUAL_RANGES(
+        decoder.end_decode(Accu()).v,
+        utils::make_array<rvt::ucs4_char>()
+    );
+
+    BOOST_CHECK_EQUAL_RANGES(
+        decoder.decode(cstr_array_view("abc\xf0"), Accu()).v,
+        utils::make_array<rvt::ucs4_char>('a', 'b', 'c')
+    );
+    BOOST_CHECK_EQUAL_RANGES(
+        decoder.decode(cstr_array_view("\x90\x8d\x88"), Accu()).v,
+        utils::make_array<rvt::ucs4_char>(0x10348)
     );
     BOOST_CHECK_EQUAL_RANGES(
         decoder.end_decode(Accu()).v,

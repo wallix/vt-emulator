@@ -148,7 +148,7 @@ struct Utf8Decoder
 
         if (data_len_) {
             auto it = utf8_string.begin();
-            auto end = utf8_string.end();
+            auto const end = utf8_string.end();
             auto data_it = data_;
             auto data_end = data_it + data_len_;
 
@@ -183,13 +183,14 @@ struct Utf8Decoder
         }
 
         auto it = utf8_string.begin();
-        auto last = it + utf8_string.size() / 4u * 4u;
-
-        while (it < last) {
-            advance_and_decode(no_checked_size{}, it, last, f);
+        if (utf8_string.size() > 3) {
+            auto const last = it + (utf8_string.size() - 3u);
+            while (it < last) {
+                advance_and_decode(no_checked_size{}, it, last, f);
+            }
         }
 
-        last = utf8_string.end();
+        auto const last = utf8_string.end();
         while (it < last && advance_and_decode(checked_size{}, it, last, f)) {
         }
 
