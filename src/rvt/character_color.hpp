@@ -27,6 +27,7 @@
 
 #include <cassert>
 #include <array>
+#include <type_traits>
 
 namespace rvt
 {
@@ -154,7 +155,7 @@ class CharacterColor
 public:
     /** Constructs a new CharacterColor whose color and color space are undefined. */
     CharacterColor()
-    : _colorSpace(ColorSpace::Undefined)
+    : _colorSpaceWithDim(ColorSpace::Undefined)
     {}
 
     /**
@@ -168,7 +169,7 @@ public:
      * TODO : Add documentation about available color spaces.
      */
     CharacterColor(ColorSpace colorSpace, int32_t co)
-    : _colorSpace(colorSpace)
+    : _colorSpaceWithDim(colorSpace)
     {
         REDEMPTION_DIAGNOSTIC_PUSH
         REDEMPTION_DIAGNOSTIC_GCC_IGNORE("-Wconversion")
@@ -198,7 +199,7 @@ public:
      * Returns true if this character color entry is valid.
      */
     bool isValid() const {
-        return _colorSpace != ColorSpace::Undefined;
+        return _colorSpaceWithDim.colorSpace() != ColorSpace::Undefined;
     }
 
     /**
@@ -234,9 +235,38 @@ public:
     friend bool operator != (const CharacterColor& a, const CharacterColor& b);
 
 private:
-    ColorSpace _colorSpace;
+    class ColorSpaceWithDim
+    {
+        using IntColorSpace = std::underlying_type<ColorSpace>::type;
+        IntColorSpace _intColorSpace;
+        static const uint8_t _colorSpaceDimFlag = 0x8;
 
-    static const uint8_t _colorSpaceDimFlag = 0x8;
+    public:
+        explicit ColorSpaceWithDim(ColorSpace colorSpace) noexcept
+          : _intColorSpace(IntColorSpace(colorSpace))
+        {}
+
+        bool operator == (ColorSpaceWithDim const& other) const noexcept
+        {
+            return _intColorSpace == other._intColorSpace;
+        }
+
+        ColorSpace colorSpace() const noexcept
+        {
+            return static_cast<ColorSpace>(_intColorSpace & IntColorSpace(~_colorSpaceDimFlag));
+        }
+
+        void setDim() noexcept
+        {
+            _intColorSpace |= _colorSpaceDimFlag;
+        }
+
+        bool isDim() const noexcept
+        {
+            return bool(_intColorSpace & _colorSpaceDimFlag);
+        }
+    };
+    ColorSpaceWithDim _colorSpaceWithDim;
 
     // bytes storing the character color
     uint8_t _u = 0;
@@ -247,7 +277,7 @@ private:
 inline bool operator == (const CharacterColor& a, const CharacterColor& b)
 {
     return
-        a._colorSpace == b._colorSpace &&
+        a._colorSpaceWithDim == b._colorSpaceWithDim &&
         a._u == b._u &&
         a._v == b._v &&
         a._w == b._w;
@@ -289,7 +319,7 @@ inline Color color256(uint8_t u, fixed_array_view<const Color, TABLE_COLORS> bas
 inline Color CharacterColor::color(fixed_array_view<const Color, TABLE_COLORS> base) const
 {
     Color const color = [this, &base]{
-        switch (static_cast<ColorSpace>(static_cast<uint8_t>(_colorSpace) & ~_colorSpaceDimFlag)) {
+        switch (_colorSpaceWithDim.colorSpace()) {
         case ColorSpace::Default:
             return base[_u + 0 + (_v ? BASE_COLORS : 0)];
         case ColorSpace::System:
@@ -307,7 +337,7 @@ inline Color CharacterColor::color(fixed_array_view<const Color, TABLE_COLORS> b
         return Color();
     }();
 
-    return bool(static_cast<uint8_t>(_colorSpace) & _colorSpaceDimFlag)
+    return _colorSpaceWithDim.isDim()
     ? Color(
         color.red()   * 2 / 3,
         color.green() * 2 / 3,
@@ -317,14 +347,15 @@ inline Color CharacterColor::color(fixed_array_view<const Color, TABLE_COLORS> b
 
 inline void CharacterColor::setIntensive()
 {
-    if (_colorSpace == ColorSpace::System || _colorSpace == ColorSpace::Default) {
+    auto const colorSpace = _colorSpaceWithDim.colorSpace();
+    if (colorSpace == ColorSpace::System || colorSpace == ColorSpace::Default) {
         _v = 1;
     }
 }
 
 inline void CharacterColor::setDim()
 {
-    _colorSpace = static_cast<ColorSpace>(static_cast<uint8_t>(_colorSpace) | _colorSpaceDimFlag);
+    _colorSpaceWithDim.setDim();
 }
 
 }

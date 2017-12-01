@@ -108,6 +108,14 @@ BOOST_AUTO_TEST_CASE(TestCharacterColor)
     color.setDim();
     BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[2+0+10]));
 
+    color = rvt::CharacterColor(rvt::ColorSpace::System, 0);
+    BOOST_CHECK_EQUAL(color.isValid(), true);
+    BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+0]);
+    color.setDim();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[2+0]));
+    color.setIntensive();
+    BOOST_CHECK_EQUAL(color.color(color_table), to_dim(color_table[2+0+10]));
+
     color = rvt::CharacterColor(rvt::ColorSpace::System, 1);
     BOOST_CHECK_EQUAL(color.isValid(), true);
     BOOST_CHECK_EQUAL(color.color(color_table), color_table[2+1]);
