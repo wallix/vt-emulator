@@ -163,3 +163,14 @@ BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)
         "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-emulator\n");
     BOOST_CHECK_EQUAL(EEXIST, terminal_emulator_transcript_from_ttyrec("test/data/ttyrec1", outfile, 0664, CreateFileMode::fail_if_exists, TranscriptPrefix::datetime));
 }
+
+BOOST_AUTO_TEST_CASE(TestEmulatorTranscriptBigFile)
+{
+    char const * outfile = "/tmp/emu_transcript.txt";
+    BOOST_CHECK_EQUAL(0, terminal_emulator_transcript_from_ttyrec(
+        "test/data/debian.ttyrec", outfile, 0664, force_create, TranscriptPrefix::datetime));
+    auto const ref = get_file_contents("test/data/debian.transcript.txt");
+    auto const gen = get_file_contents(outfile);
+    auto hash = std::hash<std::string>{};
+    BOOST_CHECK_EQUAL(hash(ref), hash(gen));
+}
