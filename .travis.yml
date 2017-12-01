@@ -15,7 +15,7 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['g++', 'libboost-test-dev', 'libboost-tools-dev']
+          packages: ['g++-4.9', 'libboost-test-dev', 'libboost-tools-dev']
       env: TOOLSET=gcc
 
     - os: linux
