@@ -13,5 +13,5 @@ Architecture: %ARCH%
 Section: development
 Homepage: %HOMEPAGE%
 Depends: %DEPENDS%
-Description: Parse command-line options library (C++11).
+Description: A headless VTXXX-compatible linux terminal emulator.
     www: %HOMEPAGE%

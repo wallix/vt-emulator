@@ -1,10 +1,12 @@
 LIB_PREFIX=/usr/lib
 INCLUDE_PREFIX=/usr/local/include/wallix
-TTY_BROWSER_JS_PREFIX=/usr/local/share/wallix-vt-emulator/html-rendering.js
-TTY_BROWSER_CSS_PREFIX=/usr/local/share/wallix-vt-emulator/tty-player.css
+TERM_BROWSER_JS_PREFIX=/usr/local/share/wallix/vt-emulator/html-rendering.js
+TERM_BROWSER_CSS_PREFIX=/usr/local/share/wallix/vt-emulator/tty-player.css
+TERM_PYTHON_BINDING_PREFIX=/usr/local/share/wallix/vt-emulator/binding/wallix_term.py
 
 BJAM_FLAGS=release
-BJAM_INSTALL=install
+BJAM_BUILD=libs
+BJAM_INSTALL=install-libs install-tty-browser install-binding install-headers
 
 ARCH=any
 BUILD_DEPENDS=debhelper (>=7), build-essential, g++ (>=4.9), libboost-tools-dev

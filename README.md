@@ -2,6 +2,7 @@
 Vt-emulator is a terminal emulator based to [Konsole](https://konsole.kde.org/download.php) ([repo](https://cgit.kde.org/konsole.git)) without graphical interface.
 [![Build Status from master](https://travis-ci.org/wallix/vt-emulator.svg?branch=master)](https://travis-ci.org/wallix/vt-emulator)
 
+
 # Demo
 
 ```bash
@@ -12,6 +13,7 @@ script -f >(../bin/*/release/terminal_browser screen.json)
 xdg-open http://localhost:4104/view_browser.html
 ls -R
 ```
+
 
 # Build
 
@@ -25,22 +27,26 @@ Set paths environment (optional):
 ```bash
 export LIB_PREFIX=build/lib
 export INCLUDE_PREFIX=build/include/wallix/vt-emulator
-export TTY_BROWSER_JS_FILE=build/browser
-export TTY_BROWSER_CSS_FILE=build/browser
+export TERM_BROWSER_JS_PREFIX=build/browser
+export TERM_BROWSER_CSS_PREFIX=build/browser
+export TERM_PYTHON_BINDING_PREFIX=build/binding
 ```
 
 Then
 
-$ `bjam install install-tty-browser`
+$ `bjam install-libs install-tty-browser install-binding install-headers` or `bjam install`
 
 
 # Package
 
-With Wallix packager (https://github.com/wallix/packager).
+With Wallix packager: https://github.com/wallix/packager (`git submodule update --init`).
 
-`$ $PACKAGER_PROJECT/packager.py --version $(./tools/tagger.sh -g) --no-entry-changelog --build-package`
+$ `./modules/packager/packager.py --version $(./tools/tagger.sh -g) --no-entry-changelog --build-package`
 
-`$ dpkg-buildpackage -I.git -Ibin -uc -us`
+
+# Tag
+
+$ `./tools/tagger.sh -u 2.0.2 -p`
 
 
 # Links

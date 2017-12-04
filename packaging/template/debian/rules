@@ -3,10 +3,11 @@
 export DH_VERBOSE=10
 export DESTDIR=debian/buildtmp
 
-export LIB_PREFIX=$(DESTDIR)/%LIB_PREFIX%
-export INCLUDE_PREFIX=$(DESTDIR)/%INCLUDE_PREFIX%
-export TTY_BROWSER_JS_PREFIX=$(DESTDIR)/%TTY_BROWSER_JS_PREFIX%
-export TTY_BROWSER_CSS_PREFIX=$(DESTDIR)/%TTY_BROWSER_CSS_PREFIX%
+export LIB_PREFIX=$(DESTDIR)//%LIB_PREFIX%
+export INCLUDE_PREFIX=$(DESTDIR)//%INCLUDE_PREFIX%
+export TERM_BROWSER_JS_PREFIX=$(DESTDIR)//%TERM_BROWSER_JS_PREFIX%
+export TERM_BROWSER_CSS_PREFIX=$(DESTDIR)//%TERM_BROWSER_CSS_PREFIX%
+export TERM_PYTHON_BINDING_PREFIX=$(DESTDIR)//%TERM_PYTHON_BINDING_PREFIX%
 
 clean:
 	# dh_testdir - test directory before building Debian package. It makes sure
@@ -23,7 +24,7 @@ build:
 	#bjam -q link=shared link=static debug install-libs
 	#mv "$(LIB_PREFIX)/libwallix_term.so" "$(LIB_PREFIX)/libwallix_term_d.so"
 	#mv "$(LIB_PREFIX)/libwallix_term.a" "$(LIB_PREFIX)/libwallix_term_d.a"
-	bjam -q -j3 %BJAM_FLAGS%
+	bjam -q -j3 %BJAM_FLAGS% %BJAM_BUILD%
 
 install: build
 	dh_testdir Jamroot

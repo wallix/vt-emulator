@@ -1,0 +1,3 @@
+[submodule "modules/packager"]
+	path = modules/packager
+	url = https://github.com/wallix/packager.git

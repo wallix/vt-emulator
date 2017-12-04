@@ -7,6 +7,7 @@ constant SRC_TEST : $(PROJECT_PATH)/test ;
 constant BROWSER : $(PROJECT_PATH)/browser ;
 constant RVT_SRC : $(SRC)/rvt ;
 constant RVT_LIB_SRC : $(SRC)/rvt_lib ;
+constant BINDING : $(PROJECT_PATH)/binding ;
 
 include $(JAM)/cxxflags.jam ;
 
@@ -41,12 +42,22 @@ rule setvar ( env : default * )
 
 constant LIB_PREFIX : [ setvar LIB_PREFIX : build/lib ] ;
 constant INCLUDE_PREFIX : [ setvar INCLUDE_PREFIX : build/include/wallix/vt-emulator ] ;
-constant TTY_BROWSER_JS_FILE : [ setvar TTY_BROWSER_JS_PREFIX : build/browser ] ;
-constant TTY_BROWSER_CSS_FILE : [ setvar TTY_BROWSER_CSS_PREFIX : build/browser ] ;
+constant TERM_BROWSER_JS_PREFIX : [ setvar TERM_BROWSER_JS_PREFIX : build/browser ] ;
+constant TERM_BROWSER_CSS_PREFIX : [ setvar TERM_BROWSER_CSS_PREFIX : build/browser ] ;
+constant TERM_PYTHON_BINDING_PREFIX : [ setvar TERM_PYTHON_BINDING_PREFIX : build/binding ] ;
 
-explicit install install-libs install-headers install-tty-browser install-tty-browser-css install-tty-browser-js ;
+explicit
+    install
+    install-libs
+    install-headers
+    install-tty-browser
+    install-tty-browser-css
+    install-tty-browser-js
+    install-python-binding
+;
+alias install-binding : install-python-binding ;
 alias install-tty-browser : install-tty-browser-css install-tty-browser-js ;
-alias install : install-libs install-headers ;
+alias install : install-libs install-headers install-binding install-tty-browser ;
 
 alias libs : libwallix_term ;
 
@@ -62,16 +73,22 @@ install install-headers
     : <location>$(INCLUDE_PREFIX)
     ;
 
+install install-python-binding
+    : $(BINDING)/wallix_term.py
+    :
+    : <location>$(TERM_PYTHON_BINDING_PREFIX)
+    ;
+
 install install-tty-browser-js
     : $(BROWSER)/tty-emulator/html_rendering.js
     :
-    : <location>$(TTY_BROWSER_JS_FILE)
+    : <location>$(TERM_BROWSER_JS_PREFIX)
     ;
 
 install install-tty-browser-css
     : $(BROWSER)/tty-emulator/player.css
     :
-    : <location>$(TTY_BROWSER_CSS_FILE)
+    : <location>$(TERM_BROWSER_CSS_PREFIX)
     ;
 
 
