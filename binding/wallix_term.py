@@ -113,12 +113,12 @@ try:
         c_char_p, c_char_p, c_int, c_int, c_int]
     lib.terminal_emulator_transcript_from_ttyrec.restype = c_int
 
-except AttributeError, e:
+except AttributeError as e:
     lib = None
     import traceback
     raise ImportError('vt-emulator shared library not found'
                       ' or incompatible (%s)' % traceback.format_exc(e))
-except Exception, e:
+except Exception as e:
     lib = None
     import traceback
     raise ImportError('vt-emulator shared library not found.\n'
