@@ -4,12 +4,12 @@ lib libunit_test :
     $(PROJECT_PATH)/redemption/src/system/linux/system/test_framework.cpp
 :
     <link>shared
-    <cxxflags>-frtti
+    <define>BOOST_TEST_DYN_LINK
+    <cxxflags>-O3
 ;
 # lib libboost_unit_test : : <name>boost_unit_test_framework <link>shared ;
 
 constant TEST_DEPENDENCIES :
-    <cxxflags>-frtti
     <library>libunit_test
     <define>BOOST_AUTO_TEST_MAIN
     <define>BOOST_TEST_DYN_LINK
