@@ -68,8 +68,12 @@ public:
     array_view<ucs4_char const> getWindowTitle() const noexcept { return {windowTitle, windowTitleLen}; }
 
     void setWindowTitle(ucs4_carray_view title) noexcept;
-    void setLogFunction(std::function<void(char const *)> f) noexcept
-    { this->_logFunction = std::move(f); }
+
+    template<class F>
+    void setLogFunction(F&& f)
+    {
+        this->_logFunction = static_cast<F&&>(f);
+    }
 
     void receiveChar(ucs4_char cc);
     void setScreenSize(int lines, int columns);
