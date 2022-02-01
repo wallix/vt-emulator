@@ -11,6 +11,8 @@ constant BINDING : $(PROJECT_PATH)/binding ;
 
 include $(JAM)/cxxflags.jam ;
 
+variant san : debug : <variant>debug <cxx-stl-debug-default>allow-broken-abi <cxx-sanitizers-default>on ;
+
 project vt_emulator
 : requirements
     <include>$(SRC)
@@ -21,6 +23,8 @@ project vt_emulator
     <cxxflags>-std=c++17
     <toolset>clang:<cxxflags>-Wno-disabled-macro-expansion
     <cxx-conversion-warnings>off
+
+    <variant>debug:<cxx-stl-debug-default>allow-broken-abi
 
     $(CXXFLAGS)
 
