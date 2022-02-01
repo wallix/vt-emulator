@@ -49,6 +49,7 @@ constant TERM_PYTHON_BINDING_PREFIX : [ setvar TERM_PYTHON_BINDING_PREFIX : buil
 explicit
     install
     install-libs
+    install-binding
     install-headers
     install-tty-browser
     install-tty-browser-css
