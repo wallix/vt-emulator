@@ -20,9 +20,10 @@
 *   Based on Konsole, an X terminal
 */
 
-#include <string>
+#include <vector>
 #include <algorithm>
 
+#include "utils/sugar/array_view.hpp"
 #include "utils/sugar/underlying_cast.hpp"
 #include "utils/sugar/numerics/safe_conversions.hpp"
 
@@ -31,9 +32,6 @@
 #include "rvt/screen.hpp"
 #include "rvt/char_class.hpp"
 #include "rvt/vt_emulator.hpp"
-
-
-#include <fstream>
 #include "rvt/utf8_decoder.hpp"
 
 namespace rvt
@@ -1046,21 +1044,34 @@ bool VtEmulator::getMode(ScreenMode m)
 }
 
 // return contents of the scan buffer
-static std::string hexdump2(ucs4_char const * s, int len)
+static std::vector<char> hexdump2(ucs4_char const * s, int len)
 {
-    int i;
-    char dump[128];
-    std::string returnDump = "Undecodable sequence: ";
+    std::vector<char> returnDump;
+    returnDump.reserve(std::size_t(len) + 1);
 
-    for (i = 0; i < len; i++) {
-        if (s[i] == '\\')
-            std::snprintf(dump, sizeof(dump), "%s", "\\\\");
-        else if ((s[i]) > 32 && s[i] < 127)
-            std::snprintf(dump, sizeof(dump), "%c", char(s[i]));
-        else
-            std::snprintf(dump, sizeof(dump), "\\x%04x(hex)", s[i]);
-        returnDump.append(dump);
+    auto append = [&](chars_view s){
+        returnDump.insert(returnDump.end(), s.begin(), s.end());
+    };
+
+    append("Undecodable sequence: "_av);
+
+    for (int i = 0; i < len; i++) {
+        if (s[i] == '\\') {
+            append("\\\\"_av);
+        }
+        else if (s[i] > 32 && s[i] < 127) {
+            returnDump.push_back(char(s[i]));
+        }
+        else {
+            char hex[8];
+            char const* digits = "0123456789abcdef";
+            for (unsigned i = 0; i < 8; ++i) {
+                hex[i] = digits[(s[i] >> (28-i*4)) & 0xf];
+            }
+            append(make_const_array_view(hex));
+        }
     }
+
     return returnDump;
 }
 
@@ -1070,7 +1081,9 @@ void VtEmulator::reportDecodingError()
         return;
     }
 
-    _logFunction(hexdump2(tokenBuffer, tokenBufferPos).c_str());
+    auto string_buffer = hexdump2(tokenBuffer, tokenBufferPos);
+    string_buffer.push_back('\0');
+    _logFunction(string_buffer.data());
 }
 
 }

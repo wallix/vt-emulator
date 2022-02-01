@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(TestEmulator)
     rvt::Utf8Decoder text_decoder;
 
     auto send_ucs = [&emulator](rvt::ucs4_char ucs) { emulator.receiveChar(ucs); };
-    auto send_zstring = [&text_decoder, send_ucs](array_view_const_char av) {
+    auto send_zstring = [&text_decoder, send_ucs](chars_view av) {
         text_decoder.decode(av.first(av.size()-1), send_ucs);
     };
 
