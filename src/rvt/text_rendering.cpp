@@ -26,7 +26,6 @@
 #include "rvt/ucs.hpp"
 #include "rvt/utf8_decoder.hpp"
 
-#include <functional> // std::cref
 #include <charconv>
 
 namespace rvt {
@@ -192,9 +191,8 @@ std::string json_rendering(
         return out;
     }
 
-    using CharacterRef = std::reference_wrapper<rvt::Character const>;
     rvt::Character const default_ch; // Default format
-    CharacterRef previous_ch = std::cref(default_ch);
+    rvt::Character const* previous_ch = &default_ch;
 
     for (auto const & line : screen.getScreenLines()) {
         buf.unsafe_push_s("[[{");
@@ -213,10 +211,10 @@ std::string json_rendering(
               | rvt::Rendition::Italic
               | rvt::Rendition::Underline
               | rvt::Rendition::Blink;
-            bool const is_same_bg = ch.backgroundColor == previous_ch.get().backgroundColor;
-            bool const is_same_fg = ch.foregroundColor == previous_ch.get().foregroundColor;
+            bool const is_same_bg = ch.backgroundColor == previous_ch->backgroundColor;
+            bool const is_same_fg = ch.foregroundColor == previous_ch->foregroundColor;
             bool const is_same_rendition
-              = (ch.rendition & rendition_flags) == (previous_ch.get().rendition & rendition_flags);
+              = (ch.rendition & rendition_flags) == (previous_ch->rendition & rendition_flags);
             bool const is_same_format = is_same_bg & is_same_fg & is_same_rendition;
             if (!is_same_format) {
                 if (is_s_enable) {
@@ -251,7 +249,7 @@ std::string json_rendering(
 
             buf.unsafe_push_character(ch, screen.extendedCharTable(), max_size_by_loop, out);
 
-            previous_ch = ch;
+            previous_ch = &ch;
         }
 
         if (is_s_enable) {
@@ -298,9 +296,8 @@ std::string ansi_rendering(
     buf.push_ucs_array(title, max_size_by_loop, out);
     buf.unsafe_push_c('\a');
 
-    using CharacterRef = std::reference_wrapper<rvt::Character const>;
     rvt::Character const default_ch; // Default format
-    CharacterRef previous_ch = std::cref(default_ch);
+    rvt::Character const* previous_ch = &default_ch;
 
     for (auto const & line : screen.getScreenLines()) {
         if (buf.remaining() >= max_size_by_loop) {
@@ -312,9 +309,9 @@ std::string ansi_rendering(
                 buf.flush(out);
             }
 
-            bool const is_same_bg = ch.backgroundColor == previous_ch.get().backgroundColor;
-            bool const is_same_fg = ch.foregroundColor == previous_ch.get().foregroundColor;
-            bool const is_same_rendition = ch.rendition == previous_ch.get().rendition;
+            bool const is_same_bg = ch.backgroundColor == previous_ch->backgroundColor;
+            bool const is_same_fg = ch.foregroundColor == previous_ch->foregroundColor;
+            bool const is_same_rendition = ch.rendition == previous_ch->rendition;
             bool const is_same_format = is_same_bg & is_same_fg & is_same_rendition;
             if (!is_same_format) {
                 buf.unsafe_push_s("\033[0");
@@ -333,7 +330,7 @@ std::string ansi_rendering(
 
             buf.unsafe_push_character(ch, screen.extendedCharTable(), max_size_by_loop, out);
 
-            previous_ch = ch;
+            previous_ch = &ch;
         }
         buf.unsafe_push_c('\n');
     }
