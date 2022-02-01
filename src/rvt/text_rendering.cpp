@@ -27,6 +27,7 @@
 #include "rvt/utf8_decoder.hpp"
 
 #include <functional> // std::cref
+#include <charconv>
 
 namespace rvt {
 
@@ -82,9 +83,8 @@ struct Buf
     void unsafe_push_s(char const (&a)[n])
     {
         assert(remaining() >= n);
-        for (std::size_t i = 0; i < n-1; ++i) {
-            *s++ = a[i];
-        }
+        memcpy(s, a, n-1);
+        s += n-1;
     }
 
     void unsafe_push_c(ucs4_char c) = delete; // unused
@@ -107,6 +107,32 @@ struct Buf
     }
 
     std::size_t remaining() const { return static_cast<std::size_t>(std::end(buf) - s); }
+
+    template<class... Ts>
+    void unsafe_push_values(Ts const&... xs)
+    {
+        (..., _unsafe_push_value(xs));
+    }
+
+private:
+    template<class T>
+    void _unsafe_push_value(T const& x)
+    {
+        if constexpr (std::is_same_v<T, int>)
+        {
+            auto r = std::to_chars(s, std::end(buf), x);
+            assert(r.ec == std::errc());
+            s = r.ptr;
+        }
+        else if constexpr (std::is_same_v<T, char>)
+        {
+            unsafe_push_c(x);
+        }
+        else
+        {
+            unsafe_push_s(x);
+        }
+    }
 };
 
 // format = "{
@@ -146,20 +172,19 @@ std::string json_rendering(
 
     Buf buf;
     if (screen.hasCursorVisible()) {
-        buf.s += std::sprintf(buf.s, R"({"x":%d,"y":%d)", screen.getCursorX(), screen.getCursorY());
+        buf.unsafe_push_values("{\"x\":", screen.getCursorX(),
+                               ",\"y\":", screen.getCursorY());
     }
     else {
         buf.unsafe_push_s(R"({"y":-1)");
     }
-    buf.s += std::sprintf(
-        buf.s, R"(,"lines":%d,"columns":%d,"title":")",
-        screen.getLines(), screen.getColumns()
-    );
+    buf.unsafe_push_values(",\"lines\":", screen.getLines(),
+                           ",\"columns\":", screen.getColumns(),
+                           ",\"title\":\"");
     buf.push_ucs_array(title, max_size_by_loop, out);
-    buf.s += std::sprintf(
-        buf.s, R"(","style":{"r":0,"f":%d,"b":%d},"data":[)",
-        color2int(palette[0]), color2int(palette[1])
-    );
+    buf.unsafe_push_values("\",\"style\":{\"r\":0"
+                           ",\"f\":", color2int(palette[0]),
+                           ",\"b\":", color2int(palette[1]), "},\"data\":[");
 
     if (!screen.getColumns() || !screen.getLines()) {
         buf.unsafe_push_s("]}");
@@ -204,14 +229,16 @@ std::string json_rendering(
                         | (bool(ch.rendition & rvt::Rendition::Underline) ? 4 : 0)
                         | (bool(ch.rendition & rvt::Rendition::Blink)     ? 8 : 0)
                     );
-                    buf.s += std::sprintf(buf.s, R"("r":%d,)", r);
+                    buf.unsafe_push_values("\"r\":", r, ",");
                 }
 
                 if (!is_same_fg) {
-                    buf.s += std::sprintf(buf.s, R"("f":%d,)", color2int(ch.foregroundColor.color(palette)));
+                    buf.unsafe_push_values("\"f\":",
+                        color2int(ch.foregroundColor.color(palette)), ",");
                 }
                 if (!is_same_bg) {
-                    buf.s += std::sprintf(buf.s, R"("b":%d,)", color2int(ch.backgroundColor.color(palette)));
+                    buf.unsafe_push_values("\"b\":",
+                        color2int(ch.backgroundColor.color(palette)), ",");
                 }
 
                 is_s_enable = false;
@@ -256,7 +283,10 @@ std::string ansi_rendering(
 ) {
     auto write_color = [palette](Buf & buf, char cmd, rvt::CharacterColor const & ch_color) {
         auto color = ch_color.color(palette);
-        buf.s += std::sprintf(buf.s, ";%c8;2;%d;%d;%d", cmd, color.red()+0, color.green()+0, color.blue()+0);
+        buf.unsafe_push_values(';', cmd, "8;2;",
+                               color.red()+0, ';',
+                               color.green()+0, ';',
+                               color.blue()+0);
     };
 
     std::string out;
