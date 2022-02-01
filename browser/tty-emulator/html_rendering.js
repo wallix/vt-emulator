@@ -30,7 +30,6 @@ return function (screen) {
     emptyLine += emptyLine
   }
 
-  console.log(screen.x,screen.y)
   const htmlLineArray = screen.data.map(function (lines, y){
     return lines.reduce(function (htmlline, line){
         let lineLen = 0
