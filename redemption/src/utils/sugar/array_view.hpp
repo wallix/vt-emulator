@@ -27,8 +27,6 @@
 
 #include "utils/sugar/array.hpp"
 
-#include "cxx/keyword.hpp"
-
 
 template<class T>
 struct array_view
@@ -54,8 +52,7 @@ struct array_view
     {}
 
     constexpr array_view(type * p, type * pright) noexcept
-    : p(p)
-    , sz(pright - p)
+    : array_view(p, std::size_t(pright - p))
     {}
 
     template<class U, class = decltype(
@@ -72,39 +69,39 @@ struct array_view
 
     constexpr std::size_t size() const noexcept { return this->sz; }
 
-    REDEMPTION_CONSTEXPR_AFTER_CXX11 type * data() noexcept { return this->p; }
+    constexpr type * data() noexcept { return this->p; }
     constexpr type const * data() const noexcept { return this->p; }
 
-    REDEMPTION_CONSTEXPR_AFTER_CXX11 type * begin() noexcept { return this->data(); }
-    REDEMPTION_CONSTEXPR_AFTER_CXX11 type * end() noexcept { return this->data() + this->size(); }
+    constexpr type * begin() noexcept { return this->data(); }
+    constexpr type * end() noexcept { return this->data() + this->size(); }
     constexpr type const * begin() const { return this->data(); }
     constexpr type const * end() const { return this->data() + this->size(); }
 
-    REDEMPTION_CONSTEXPR_AFTER_CXX11 type & operator[](std::size_t i) noexcept
+    constexpr type & operator[](std::size_t i) noexcept
     { assert(i < this->size()); return this->data()[i]; }
-    REDEMPTION_CONSTEXPR_AFTER_CXX11 type const & operator[](std::size_t i) const noexcept
+    constexpr type const & operator[](std::size_t i) const noexcept
     { assert(i < this->size()); return this->data()[i]; }
 
-    REDEMPTION_CONSTEXPR_AFTER_CXX11 array_view first(std::size_t n) const noexcept
+    constexpr array_view first(std::size_t n) const noexcept
     {
         assert(n <= this->size());
         return {this->data(), n};
     }
 
-    REDEMPTION_CONSTEXPR_AFTER_CXX11 array_view last(std::size_t n) const noexcept
+    constexpr array_view last(std::size_t n) const noexcept
     {
         assert(n <= this->size());
         return {this->data() + this->size() - n, n};
     }
 
 
-    REDEMPTION_CONSTEXPR_AFTER_CXX11 array_view subarray(std::size_t offset) const noexcept
+    constexpr array_view subarray(std::size_t offset) const noexcept
     {
         assert(offset <= this->size());
         return {this->data() + offset, static_cast<std::size_t>(this->size() - offset)};
     }
 
-    REDEMPTION_CONSTEXPR_AFTER_CXX11 array_view subarray(std::size_t offset, std::size_t count) const noexcept
+    constexpr array_view subarray(std::size_t offset, std::size_t count) const noexcept
     {
         assert(offset <= this->size() && count <= this->size() - offset);
         return {this->data() + offset, count};

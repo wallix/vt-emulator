@@ -171,7 +171,7 @@ public:
     CharacterColor(ColorSpace colorSpace, int32_t co)
     : _colorSpaceWithDim(colorSpace)
     {
-        REDEMPTION_DIAGNOSTIC_PUSH
+        REDEMPTION_DIAGNOSTIC_PUSH()
         REDEMPTION_DIAGNOSTIC_GCC_IGNORE("-Wconversion")
         switch (colorSpace) {
         case ColorSpace::Default:
@@ -192,7 +192,7 @@ public:
         case ColorSpace::Undefined:
             break;
         }
-        REDEMPTION_DIAGNOSTIC_POP
+        REDEMPTION_DIAGNOSTIC_POP()
     }
 
     /**
@@ -289,7 +289,7 @@ inline bool operator != (const CharacterColor& a, const CharacterColor& b)
 
 inline Color color256(uint8_t u, fixed_array_view<const Color, TABLE_COLORS> base)
 {
-    REDEMPTION_DIAGNOSTIC_PUSH
+    REDEMPTION_DIAGNOSTIC_PUSH()
     REDEMPTION_DIAGNOSTIC_GCC_IGNORE("-Wconversion")
     //   0.. 16: system colors
     if (u < 8) {
@@ -311,7 +311,7 @@ inline Color color256(uint8_t u, fixed_array_view<const Color, TABLE_COLORS> bas
 
     // 232..255: gray, leaving out black and white
     uint8_t gray = u * 10 + 8;
-    REDEMPTION_DIAGNOSTIC_POP
+    REDEMPTION_DIAGNOSTIC_POP()
 
     return Color(gray, gray, gray);
 }

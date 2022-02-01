@@ -18,7 +18,9 @@ project vt_emulator
     <include>$(PROJECT_PATH)/redemption/src/system/linux
 
     <conditional>@flags
-    <cxxflags>-std=c++11
+    <cxxflags>-std=c++17
+    <toolset>clang:<cxxflags>-Wno-disabled-macro-expansion
+    <cxx-conversion-warnings>off
 
     $(CXXFLAGS)
 

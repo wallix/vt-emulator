@@ -96,7 +96,7 @@ struct Buf
 
     #ifndef NDEBUG
     ~Buf() {
-        assert(std::uncaught_exception() || s == buf);
+        assert(std::uncaught_exceptions() || s == buf);
     }
     #endif
 

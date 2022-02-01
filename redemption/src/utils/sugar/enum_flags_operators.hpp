@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include "cxx/keyword.hpp"
 #include "utils/sugar/underlying_cast.hpp"
 
 namespace detail_
@@ -63,13 +62,11 @@ operator | (T x, T y) noexcept
 { return T(underlying_cast(x) | underlying_cast(y)); }
 
 template<class T>
-REDEMPTION_CXX14_CONSTEXPR
-enable_if_enum_flags<T> &
+constexpr enable_if_enum_flags<T> &
 operator &= (T & x, T y) noexcept
 { return x = T(underlying_cast(x) & underlying_cast(y)); }
 
 template<class T>
-REDEMPTION_CXX14_CONSTEXPR
-enable_if_enum_flags<T> &
+constexpr enable_if_enum_flags<T> &
 operator |= (T & x, T y) noexcept
 { return x = T(underlying_cast(x) | underlying_cast(y)); }

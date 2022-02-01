@@ -1,6 +1,9 @@
 #pragma once
 
-#include <boost/test/auto_unit_test.hpp>
+#include <boost/test/unit_test.hpp>
+
+#include "cxx/diagnostic.hpp"
+#include "cxx/compiler_version.hpp"
 
 // fixed link error (API changed)
 // #ifdef __clang__
@@ -10,6 +13,12 @@
 //     }
 // }}}
 // #endif
+
+// FIXME global warning deactivation, should be in each macro
+#if REDEMPTION_COMP_CLANG_VERSION >= REDEMPTION_COMP_VERSION_NUMBER(9, 0, 0)
+    REDEMPTION_DIAGNOSTIC_PUSH()
+    REDEMPTION_DIAGNOSTIC_CLANG_IGNORE("-Wused-but-marked-unused")
+#endif
 
 #ifdef IN_IDE_PARSER
 # define FIXTURES_PATH "./tests/fixtures"
@@ -40,26 +49,26 @@
             return false;                       \
         }                                       \
     )
-# define BOOST_CHECK_EQUAL_RANGES(a_, b_)                 \
-    do {                                                  \
-        auto const & A__CHECK_RANGES = a_;                \
-        auto const & B__CHECK_RANGES = b_;                \
-        using std::begin;                                 \
-        using std::end;                                   \
-        BOOST_CHECK_EQUAL_COLLECTIONS(                    \
-            begin(A__CHECK_RANGES), end(A__CHECK_RANGES), \
-            begin(B__CHECK_RANGES), end(B__CHECK_RANGES)  \
-        );                                                \
+# define BOOST_CHECK_EQUAL_RANGES(a_, b_)               \
+    do {                                                \
+        auto const & A_CHECK_RANGES = a_;               \
+        auto const & B_CHECK_RANGES = b_;               \
+        using std::begin;                               \
+        using std::end;                                 \
+        BOOST_CHECK_EQUAL_COLLECTIONS(                  \
+            begin(A_CHECK_RANGES), end(A_CHECK_RANGES), \
+            begin(B_CHECK_RANGES), end(B_CHECK_RANGES)  \
+        );                                              \
     } while (0)
-# define BOOST_REQUIRE_EQUAL_RANGES(a_, b_)               \
-    do {                                                  \
-        auto const & A__CHECK_RANGES = a_;                \
-        auto const & B__CHECK_RANGES = b_;                \
-        using std::begin;                                 \
-        using std::end;                                   \
-        BOOST_REQUIRE_EQUAL_COLLECTIONS(                  \
-            begin(A__CHECK_RANGES), end(A__CHECK_RANGES), \
-            begin(B__CHECK_RANGES), end(B__CHECK_RANGES)  \
-        );                                                \
+# define BOOST_REQUIRE_EQUAL_RANGES(a_, b_)             \
+    do {                                                \
+        auto const & A_CHECK_RANGES = a_;               \
+        auto const & B_CHECK_RANGES = b_;               \
+        using std::begin;                               \
+        using std::end;                                 \
+        BOOST_REQUIRE_EQUAL_COLLECTIONS(                \
+            begin(A_CHECK_RANGES), end(A_CHECK_RANGES), \
+            begin(B_CHECK_RANGES), end(B_CHECK_RANGES)  \
+        );                                              \
     } while (0)
 #endif

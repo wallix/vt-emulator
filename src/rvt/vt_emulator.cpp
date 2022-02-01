@@ -24,6 +24,7 @@
 #include <algorithm>
 
 #include "utils/sugar/underlying_cast.hpp"
+#include "utils/sugar/numerics/safe_conversions.hpp"
 
 #include "rvt/character.hpp"
 #include "rvt/charsets.hpp"
@@ -129,10 +130,10 @@ void VtEmulator::reset()
 
 */
 
-#define TY_CONSTRUCT(T,A,N) ( \
-    (((N+0) & 0xffff) << 16) | \
-    (((A+0) & 0xff) << 8) | \
-    ( (T+0) & 0xff) )
+#define TY_CONSTRUCT(T,A,N) (                      \
+    ((checked_cast<uint32_t>(N) & 0xffffu) << 16) | \
+    ((checked_cast<uint32_t>(A) & 0xffu  ) << 8 ) | \
+    ( checked_cast<uint32_t>(T) & 0xffu  ) )
 
 #define TY_CHR(   )     TY_CONSTRUCT(0,0,0)
 #define TY_CTL(A  )     TY_CONSTRUCT(1,A,0)
@@ -289,14 +290,14 @@ void VtEmulator::receiveChar(ucs4_char cc)
             {
                 // ESC[ ... 48;2;<red>;<green>;<blue> ... m -or- ESC[ ... 38;2;<red>;<green>;<blue> ... m
                 i += 2;
-                processToken(TY_CSI_PS(cc, argv[i-2]), static_cast<int>(ColorSpace::RGB), (argv[i] << 16) | (argv[i+1] << 8) | argv[i+2]);
+                processToken(TY_CSI_PS(cc, argv[i-2]), static_cast<int32_t>(ColorSpace::RGB), (argv[i] << 16) | (argv[i+1] << 8) | argv[i+2]);
                 i += 2;
             }
             else if (cc == 'm' && argc - i >= 2 && (argv[i] == 38 || argv[i] == 48) && argv[i+1] == 5)
             {
                 // ESC[ ... 48;5;<index> ... m -or- ESC[ ... 38;5;<index> ... m
                 i += 2;
-                processToken(TY_CSI_PS(cc, argv[i-2]), static_cast<int>(ColorSpace::Index256), argv[i]);
+                processToken(TY_CSI_PS(cc, argv[i-2]), static_cast<int32_t>(ColorSpace::Index256), argv[i]);
             }
             else
                 processToken(TY_CSI_PS(cc,argv[i]), 0, 0);
@@ -383,7 +384,7 @@ constexpr inline CharsetId char_to_charset_id(char c)
    about this mapping.
 */
 
-void VtEmulator::processToken(int token, int32_t p, int q)
+void VtEmulator::processToken(uint32_t token, int32_t p, int q)
 {
   switch (token)
   {
@@ -797,7 +798,7 @@ void VtEmulator::processToken(int token, int32_t p, int q)
     default:
         reportDecodingError();
         break;
-  };
+  }
 }
 
 void VtEmulator::clearScreenAndSetColumns(int columnCount)

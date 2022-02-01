@@ -131,7 +131,7 @@ private:
 
     void reportDecodingError();
 
-    void processToken(int code, int32_t p, int q);
+    void processToken(uint32_t code, int32_t p, int q);
 
     // clears the screen and resizes it to the specified
     // number of columns

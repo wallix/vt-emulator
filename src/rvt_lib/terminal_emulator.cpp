@@ -56,7 +56,7 @@ using rvt_lib::TerminalEmulator;
 using rvt_lib::OutputFormat;
 
 
-static ssize_t write_all(int fd, const void * data, size_t len) noexcept
+static bool write_all(int fd, const void * data, size_t len) noexcept
 {
     size_t remaining_len = len;
     size_t total_sent = 0;
@@ -66,12 +66,12 @@ static ssize_t write_all(int fd, const void * data, size_t len) noexcept
             if (errno == EINTR){
                 continue;
             }
-            return -1;
+            return false;
         }
         remaining_len -= ret;
         total_sent += ret;
     }
-    return total_sent;
+    return true;
 }
 
 static int build_format_string(
@@ -87,23 +87,21 @@ static int build_format_string(
                 emu.emulator.getCurrentScreen(), \
                 rvt::xterm_color_table,          \
                 extra_data                       \
-            ); break
+            ); return 0
         switch (format) {
             call_rendering(json);
             call_rendering(ansi);
-            default: return -2;
         }
         #undef call_rendering
+        return -2;
     }
     catch (...) {
         return errno ? errno : -1;
     }
-
-    return 0;
 }
 
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 char const * terminal_emulator_version() noexcept
 {
     return RVT_LIB_VERSION;
@@ -114,7 +112,7 @@ char const * terminal_emulator_version() noexcept
 #define Panic(expr, err) do { try { expr; } catch (...) { return err; } } while (0)
 #define Panic_errno(expr) do { try { expr; } catch (...) { return errno ? errno : -1; } } while (0)
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 TerminalEmulator * terminal_emulator_init(int lines, int columns) noexcept
 {
     if (lines <= 0 || columns <= 0) {
@@ -123,14 +121,14 @@ TerminalEmulator * terminal_emulator_init(int lines, int columns) noexcept
     Panic(return new(std::nothrow) TerminalEmulator(lines, columns), nullptr);
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_deinit(TerminalEmulator * emu) noexcept
 {
     delete emu;
     return 0;
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_finish(TerminalEmulator * emu) noexcept
 {
     return_if(!emu);
@@ -141,19 +139,19 @@ int terminal_emulator_finish(TerminalEmulator * emu) noexcept
 }
 
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_size(TerminalEmulator const * emu) noexcept
 {
     return emu ? int(emu->str.size()) : -2;
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 char const * terminal_emulator_buffer_data(TerminalEmulator const * emu) noexcept
 {
     return emu ? emu->str.c_str() : "";
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_reset(TerminalEmulator * emu) noexcept
 {
     return_if(!emu);
@@ -162,7 +160,7 @@ int terminal_emulator_buffer_reset(TerminalEmulator * emu) noexcept
 }
 
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_set_title(TerminalEmulator * emu, char const * title) noexcept
 {
     return_if(!emu);
@@ -186,7 +184,7 @@ int terminal_emulator_set_title(TerminalEmulator * emu, char const * title) noex
     return 0;
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_set_log_function(
     TerminalEmulator * emu, LogFunction log_func
 ) noexcept
@@ -197,7 +195,7 @@ int terminal_emulator_set_log_function(
     return 0;
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_set_log_function_ctx(
     TerminalEmulator * emu, LogFunctionCtx log_func, void * ctx
 ) noexcept
@@ -208,7 +206,7 @@ int terminal_emulator_set_log_function_ctx(
     return 0;
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_feed(TerminalEmulator * emu, char const * s, int n) noexcept
 {
     return_if(!emu);
@@ -218,7 +216,7 @@ int terminal_emulator_feed(TerminalEmulator * emu, char const * s, int n) noexce
     return 0;
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns) noexcept
 {
     return_if(!emu);
@@ -233,7 +231,7 @@ int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns) noe
 }
 
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_prepare(
     TerminalEmulator * emu, OutputFormat format, char const * extra_data
 ) noexcept
@@ -256,7 +254,7 @@ namespace
     }
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_write_buffer(
     TerminalEmulator const * emu, char const * filename, int mode, CreateFileMode create_mode
 ) noexcept
@@ -269,7 +267,7 @@ int terminal_emulator_write_buffer(
 
     std::string const & out = emu->str;
 
-    if (write_all(fd, out.c_str(), out.size()) != static_cast<ssize_t>(out.size())) {
+    if (!write_all(fd, out.c_str(), out.size())) {
         auto err = errno;
         close(fd);
         unlink(filename);
@@ -281,7 +279,7 @@ int terminal_emulator_write_buffer(
     return 0;
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_write_buffer_integrity(
     TerminalEmulator const * emu, char const * filename, char const * prefix_tmp_filename, int mode
 ) noexcept
@@ -303,7 +301,7 @@ int terminal_emulator_write_buffer_integrity(
     std::string const & out = emu->str;
 
     if (fchmod(fd, mode) == -1
-     || write_all(fd, out.c_str(), out.size()) != static_cast<ssize_t>(out.size())
+     || !write_all(fd, out.c_str(), out.size())
      || rename(tmpfilename, filename) == -1
     ) {
         auto const err = errno;
@@ -318,7 +316,7 @@ int terminal_emulator_write_buffer_integrity(
 }
 
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_write(
     TerminalEmulator * emu, OutputFormat format, char const * extra_data,
     char const * filename, int mode, CreateFileMode create_mode
@@ -331,7 +329,7 @@ int terminal_emulator_write(
     return terminal_emulator_write_buffer(emu, filename, mode, create_mode);
 }
 
-REDEMPTION_LIB_EXTERN
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_write_integrity(
     TerminalEmulator * emu, OutputFormat format, char const * extra_data,
     char const * filename, char const * prefix_tmp_filename, int mode
@@ -345,7 +343,7 @@ int terminal_emulator_write_integrity(
 }
 
 
-REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
+REDEMPTION_LIB_EXPORT int terminal_emulator_transcript_from_ttyrec(
     char const * infile, char const * outfile, int mode,
     CreateFileMode create_mode, TranscriptPrefix prefix
 ) noexcept
@@ -394,7 +392,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
         void prepare(uint32_t n = 4)
         {
             if (sizeof(buf) - remaining() < n) {
-                if (write_all(fd, buf, remaining()) != remaining()) {
+                if (!write_all(fd, buf, remaining())) {
                     err = errno;
                 }
                 pbuf = buf;
@@ -403,7 +401,7 @@ REDEMPTION_LIB_EXTERN int terminal_emulator_transcript_from_ttyrec(
 
         void finish()
         {
-            if (write_all(fd, buf, remaining()) != remaining()) {
+            if (!write_all(fd, buf, remaining())) {
                 err = errno;
             }
         }

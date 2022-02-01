@@ -25,9 +25,9 @@
 #include "rvt/ucs.hpp"
 #include "rvt/character_color.hpp"
 
-#include "cxx/attributes.hpp"
 #include "utils/sugar/array_view.hpp"
 #include "utils/sugar/enum_flags_operators.hpp"
+#include "utils/sugar/numerics/safe_conversions.hpp"
 
 #include <array>
 #include <vector>
@@ -218,7 +218,7 @@ inline void ExtendedCharTable::growChar(Character & character, ucs4_char uc)
         this->extendedCharTable.emplace_back(ExtendedCharacter{
             2, capacity, std::unique_ptr<ucs4_char[]>{new ucs4_char[capacity]{character.character, uc}}
         });
-        character.character = this->extendedCharTable.size() - 1;
+        character.character = checked_int(this->extendedCharTable.size() - 1);
         character.rendition |= Rendition::ExtendedChar;
     }
 }

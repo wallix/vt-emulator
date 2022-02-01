@@ -22,11 +22,11 @@
 
 #include "rvt/ucs.hpp"
 
-#include "cxx/keyword.hpp"
-#include "cxx/attributes.hpp"
+#include "cxx/cxx.hpp"
 #include "utils/sugar/array.hpp"
 #include "utils/sugar/bytes_t.hpp"
 #include "utils/sugar/array_view.hpp"
+#include "utils/sugar/numerics/safe_conversions.hpp"
 
 #include <cassert>
 
@@ -103,34 +103,34 @@ constexpr Utf8ByteSize utf8_byte_size(uint8_t c) noexcept
 
 constexpr bool is_valid_utf8_sequence(uint8_t a) noexcept
 {
-    return (a & 0xc0) == 0x80;
+    return (a & 0xC0u) == 0x80;
 }
 
 constexpr uint32_t utf8_2_bytes_to_ucs(uint8_t a, uint8_t b) noexcept
 {
-    return ((a & 0x1F) << 6 ) | (b & 0x3F);
+    return ((a & 0x1Fu) << 6 ) | (b & 0x3Fu);
 }
 
 
 constexpr bool is_valid_utf8_sequence(uint8_t a, uint8_t b) noexcept
 {
-    return ((a & b & 0x80) | ((a | b) & 0x40)) == 0x80;
+    return ((a & b & 0x80u) | ((a | b) & 0x40u)) == 0x80;
 }
 
 constexpr uint32_t utf8_3_bytes_to_ucs(uint8_t a, uint8_t b, uint8_t c) noexcept
 {
-    return ((a & 0x0F) << 12) | ((b & 0x3F) << 6) | (c & 0x3F);
+    return ((a & 0x0Fu) << 12) | ((b & 0x3Fu) << 6) | (c & 0x3Fu);
 }
 
 
 constexpr bool is_valid_utf8_sequence(uint8_t a, uint8_t b, uint8_t c) noexcept
 {
-    return ((a & b & c & 0x80) | ((a | b | c) & 0x40)) == 0x80;
+    return ((a & b & c & 0x80u) | ((a | b | c) & 0x40u)) == 0x80;
 }
 
 constexpr uint32_t utf8_4_bytes_to_ucs(uint8_t a, uint8_t b, uint8_t c, uint8_t d) noexcept
 {
-    return ((a & 0x07) << 18) | ((b & 0x3F) << 12) | ((c & 0x3F) << 6) | (d & 0x3F);
+    return ((a & 0x07u) << 18) | ((b & 0x3Fu) << 12) | ((c & 0x3Fu) << 6) | (d & 0x3Fu);
 }
 
 //constexpr ucs4_char replacement_character = 0xfffd; // � REPLACEMENT CHARACTER
@@ -279,28 +279,24 @@ private:
 
     // return std::copy(first, last, this->data_) - this->data_
     template<class It>
-    std::size_t copy_to_data(It first, It const & last)
+    uint8_t copy_to_data(It first, It const & last)
     {
-        #ifdef NDEBUG
-        auto const n = static_cast<int8_t>(last - first);
-        #else
-        auto const n = last - first;
-        #endif
+        auto const n = checked_cast<uint8_t>(last - first);
         switch (n) {
-            case 4: data_[3] = first[3]; REDEMPTION_CXX_FALLTHROUGH;
-            case 3: data_[2] = first[2]; REDEMPTION_CXX_FALLTHROUGH;
-            case 2: data_[1] = first[1]; REDEMPTION_CXX_FALLTHROUGH;
-            case 1: data_[0] = first[0]; REDEMPTION_CXX_FALLTHROUGH;
+            case 4: data_[3] = first[3]; [[fallthrough]];
+            case 3: data_[2] = first[2]; [[fallthrough]];
+            case 2: data_[1] = first[1]; [[fallthrough]];
+            case 1: data_[0] = first[0]; [[fallthrough]];
             case 0: break;
             default: assert(n && "bad value, isn't 0, 1, 2, 3 or 4");
         }
-        return static_cast<std::size_t>(n);
+        return n;
     }
 
     using checked_size = std::true_type;
     using no_checked_size = std::false_type;
     uint8_t data_[4];
-    unsigned data_len_ = 0;
+    long long data_len_ = 0;
 };
 
 }

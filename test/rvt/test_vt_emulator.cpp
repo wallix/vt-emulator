@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(TestEmulator)
     rvt::Utf8Decoder text_decoder;
 
     auto send_ucs = [&emulator](rvt::ucs4_char ucs) { emulator.receiveChar(ucs); };
-    auto send_zstring = [&emulator, &text_decoder, send_ucs](array_view_const_char av) {
+    auto send_zstring = [&text_decoder, send_ucs](array_view_const_char av) {
         text_decoder.decode(av.first(av.size()-1), send_ucs);
     };
 
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(TestEmulatorReplay1)
     );
 
     BOOST_CHECK_EQUAL(s.size(), 4327u);
-    BOOST_CHECK_EQUAL(s, u8""
+    BOOST_CHECK_EQUAL(s, ""
         "\033]\a│       ├── \033[0;4;38;2;95;135;215mcxx\n"
         "\033[0;38;2;238;238;238m│       │   ├── \033[0;38;2;95;215;255mattributes.hpp\n"
         "\033[0;38;2;238;238;238m│       │   ├── \033[0;38;2;95;215;255mdiagnostic.hpp\n"
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(TestEmulatorReplay1)
         "\n");
 
     BOOST_CHECK_EQUAL(out.size(), 3197u);
-    BOOST_CHECK_EQUAL(out, u8""
+    BOOST_CHECK_EQUAL(out, ""
         "Script started on 2017-11-28 11:32:57+0100\n"
         "                                          %"
         "                                                             \n"

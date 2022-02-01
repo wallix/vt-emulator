@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)
     char const * outfile = "/tmp/emu_transcript.txt";
     BOOST_CHECK_EQUAL(ENOENT, terminal_emulator_transcript_from_ttyrec("aaa", outfile, 0664, force_create, TranscriptPrefix::datetime));
     BOOST_CHECK_EQUAL(0, terminal_emulator_transcript_from_ttyrec("test/data/ttyrec1", outfile, 0664, force_create, TranscriptPrefix::datetime));
-    BOOST_CHECK_EQUAL(get_file_contents(outfile), u8""
+    BOOST_CHECK_EQUAL(get_file_contents(outfile), ""
         "2017-11-29 17:29:05 [2]~/projects/vt-emulator!4902$(nomove)✗ l               ~/projects/vt-emulator\n"
         "2017-11-29 17:29:05 binding/  jam/     LICENSE   packaging/  redemption/  test/   typescript\n"
         "2017-11-29 17:29:05 browser/  Jamroot  out_text  README.md   src/         tools/  vt-emulator.kdev4\n"
