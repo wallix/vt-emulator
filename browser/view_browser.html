@@ -30,7 +30,7 @@
 // ln -s ${VT_EMULATOR}/browser/* .
 // python3 -m http.server 4104
 // script -f >(./terminal_browser screen.json)
-// open http://localhost:4104/view_browser.html
+// xdg-open http://localhost:4104/view_browser.html
 
 const msDelay = document.location.search.replace(/[^0-9.]/g, '')*1000 || 3000;
 const view = document.getElementById("tty-player");

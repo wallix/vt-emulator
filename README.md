@@ -8,7 +8,7 @@ Vt-emulator is a terminal emulator based to [Konsole](https://konsole.kde.org/do
 ```bash
 bjam terminal_browser
 cd browser
-python -m SimpleHTTPServer 4104
+python3 -m http.server 4104
 script -f >(../bin/*/release/terminal_browser screen.json)
 xdg-open http://localhost:4104/view_browser.html
 ls -R
