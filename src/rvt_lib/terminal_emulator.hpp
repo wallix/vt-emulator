@@ -22,6 +22,9 @@
 
 #include "cxx/cxx.hpp"
 
+#include <cstddef>
+
+
 namespace rvt_lib
 {
     class TerminalEmulator;
@@ -57,8 +60,8 @@ REDEMPTION_LIB_EXPORT int terminal_emulator_deinit(TerminalEmulator *) noexcept;
 //END ctor/dtor
 
 //BEGIN log
-using LogFunction = void(*)(char const *);
-using LogFunctionCtx = void(*)(void *, char const *);
+using LogFunction = void(*)(char const *, std::size_t len);
+using LogFunctionCtx = void(*)(void *, char const *, std::size_t len);
 
 REDEMPTION_LIB_EXPORT int terminal_emulator_set_log_function(
     TerminalEmulator *, LogFunction) noexcept;
@@ -69,13 +72,15 @@ REDEMPTION_LIB_EXPORT int terminal_emulator_set_log_function_ctx(
 //BEGIN emulator
 REDEMPTION_LIB_EXPORT int terminal_emulator_set_title(TerminalEmulator *, char const * title) noexcept;
 REDEMPTION_LIB_EXPORT int terminal_emulator_finish(TerminalEmulator *) noexcept;
-REDEMPTION_LIB_EXPORT int terminal_emulator_feed(TerminalEmulator *, char const * s, int n) noexcept;
+REDEMPTION_LIB_EXPORT int terminal_emulator_feed(TerminalEmulator *, char const * s, std::size_t len) noexcept;
 REDEMPTION_LIB_EXPORT int terminal_emulator_resize(TerminalEmulator *, int lines, int columns) noexcept;
 //END emulator
 
 //BEGIN buffer
 REDEMPTION_LIB_EXPORT int terminal_emulator_buffer_prepare(
     TerminalEmulator *, OutputFormat, char const * extra_data) noexcept;
+REDEMPTION_LIB_EXPORT int terminal_emulator_buffer_prepare2(
+    TerminalEmulator *, OutputFormat, char const * extra_data, std::size_t extra_data_len) noexcept;
 REDEMPTION_LIB_EXPORT int terminal_emulator_buffer_size(TerminalEmulator const *) noexcept;
 REDEMPTION_LIB_EXPORT char const * terminal_emulator_buffer_data(TerminalEmulator const *) noexcept;
 REDEMPTION_LIB_EXPORT int terminal_emulator_buffer_reset(TerminalEmulator *) noexcept;
@@ -90,9 +95,15 @@ REDEMPTION_LIB_EXPORT int terminal_emulator_write_buffer_integrity(
 REDEMPTION_LIB_EXPORT int terminal_emulator_write(
     TerminalEmulator *, OutputFormat, char const * extra_data,
     char const * filename, int mode, CreateFileMode) noexcept;
+REDEMPTION_LIB_EXPORT int terminal_emulator_write2(
+    TerminalEmulator *, OutputFormat, char const * extra_data, std::size_t extra_data_len,
+    char const * filename, int mode, CreateFileMode) noexcept;
 /// \brief terminal_emulator_buffer_prepare then terminal_emulator_write_buffer_integrity
 REDEMPTION_LIB_EXPORT int terminal_emulator_write_integrity(
     TerminalEmulator *, OutputFormat, char const * extra_data,
+    char const * filename, char const * prefix_tmp_filename, int mode) noexcept;
+REDEMPTION_LIB_EXPORT int terminal_emulator_write_integrity2(
+    TerminalEmulator *, OutputFormat, char const * extra_data, std::size_t extra_data_len,
     char const * filename, char const * prefix_tmp_filename, int mode) noexcept;
 
 /// \brief Generate a transcript file of session recorded by ttyrec

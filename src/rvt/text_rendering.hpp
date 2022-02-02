@@ -23,6 +23,7 @@
 #include "rvt/character.hpp"
 
 #include <string>
+#include <string_view>
 
 namespace rvt {
 
@@ -30,11 +31,29 @@ class Screen;
 
 std::string json_rendering(
     ucs4_carray_view title, Screen const & screen,
-    ColorTableView palette, char const * extra_data = nullptr
+    ColorTableView palette, std::string_view extra_data = {}
 );
 std::string ansi_rendering(
     ucs4_carray_view title, Screen const & screen,
-    ColorTableView palette, char const * extra_data = nullptr
+    ColorTableView palette, std::string_view extra_data = {}
 );
+
+inline std::string json_rendering(
+    ucs4_carray_view title, Screen const & screen,
+    ColorTableView palette, char const* extra_data
+)
+{
+    return json_rendering(title, screen, palette,
+        extra_data ? std::string_view(extra_data) : std::string_view());
+}
+
+inline std::string ansi_rendering(
+    ucs4_carray_view title, Screen const & screen,
+    ColorTableView palette, char const* extra_data
+)
+{
+    return ansi_rendering(title, screen, palette,
+        extra_data ? std::string_view(extra_data) : std::string_view());
+}
 
 }

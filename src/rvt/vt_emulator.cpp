@@ -1083,7 +1083,7 @@ void VtEmulator::reportDecodingError()
 
     auto string_buffer = hexdump2(tokenBuffer, tokenBufferPos);
     string_buffer.push_back('\0');
-    _logFunction(string_buffer.data());
+    _logFunction(string_buffer.data(), string_buffer.size() - 1u);
 }
 
 }

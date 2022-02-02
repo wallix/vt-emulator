@@ -152,7 +152,7 @@ private:
     Screen _screen1;
     Screen * _currentScreen = &_screen1;
 
-    std::function<void(char const *)> _logFunction;
+    std::function<void(char const *, std::size_t)> _logFunction;
 };
 
 }

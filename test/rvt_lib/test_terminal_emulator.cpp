@@ -74,12 +74,12 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     auto emu = uemu.get();
 
     BOOST_CHECK(emu);
-    BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function(emu, [](char const *) { global_i = 2; }));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function(emu, [](char const *, std::size_t) { global_i = 2; }));
     BOOST_CHECK_EQUAL(global_i, 1);
     BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[324a", 6));
     BOOST_CHECK_EQUAL(global_i, 2);
     int ctx_i = 1;
-    BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function_ctx(emu, [](void * ctx, char const *) { *static_cast<int*>(ctx) = 3; }, &ctx_i));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function_ctx(emu, [](void * ctx, char const *, std::size_t) { *static_cast<int*>(ctx) = 3; }, &ctx_i));
     BOOST_CHECK_EQUAL(ctx_i, 1);
     BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[324a", 6));
     BOOST_CHECK_EQUAL(ctx_i, 3);
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
 
     contents = R"xxx({"x":1,"y":0,"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emu, OutputFormat::json, nullptr));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare2(emu, OutputFormat::json, nullptr, 0));
     BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_buffer_size(emu));
     BOOST_CHECK_EQUAL(contents, terminal_emulator_buffer_data(emu));
 
@@ -132,8 +132,8 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
 
 
     // check error code
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function_ctx(nullptr, [](void *, char const *) {}, nullptr));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function(nullptr, [](char const *) {}));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function_ctx(nullptr, [](void *, char const *, std::size_t) {}, nullptr));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function(nullptr, [](char const *, std::size_t) {}));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_set_title(nullptr, "Lib test"));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_feed(nullptr, "\033[324a", 6));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_write_buffer(nullptr, filename, 0664, force_create));

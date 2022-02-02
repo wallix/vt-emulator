@@ -159,7 +159,7 @@ std::string json_rendering(
     array_view<ucs4_char const> title,
     Screen const & screen,
     ColorTableView palette,
-    char const * extra_data
+    std::string_view extra_data
 ) {
     auto color2int = [](rvt::Color const & color){
         return (color.red() << 16) | (color.green() << 8) |  (color.blue() << 0);
@@ -259,7 +259,7 @@ std::string json_rendering(
     }
     --buf.s;
 
-    if (extra_data) {
+    if (!extra_data.empty()) {
         buf.unsafe_push_s("],\"extra\":");
         buf.flush(out);
         out += extra_data;
@@ -277,7 +277,7 @@ std::string ansi_rendering(
     array_view<ucs4_char const> title,
     Screen const & screen,
     ColorTableView palette,
-    char const * extra_data
+    std::string_view extra_data
 ) {
     auto write_color = [palette](Buf & buf, char cmd, rvt::CharacterColor const & ch_color) {
         auto color = ch_color.color(palette);
@@ -336,7 +336,7 @@ std::string ansi_rendering(
     }
 
     buf.flush(out);
-    if (extra_data) {
+    if (!extra_data.empty()) {
         out += extra_data;
     }
 

@@ -74,9 +74,25 @@ static bool write_all(int fd, const void * data, size_t len) noexcept
     return true;
 }
 
+namespace
+{
+    struct StrExtraData
+    {
+        std::string_view str;
+
+        StrExtraData(char const* s)
+        : str(s ? std::string_view(s) : std::string_view())
+        {}
+
+        StrExtraData(char const* s, std::size_t len)
+        : str(s, len)
+        {}
+    };
+}
+
 static int build_format_string(
     TerminalEmulator & emu, OutputFormat format,
-    std::string & out, char const * extra_data
+    std::string & out, StrExtraData extra_data
 ) noexcept
 {
     try {
@@ -86,7 +102,7 @@ static int build_format_string(
                 emu.emulator.getWindowTitle(),   \
                 emu.emulator.getCurrentScreen(), \
                 rvt::xterm_color_table,          \
-                extra_data                       \
+                extra_data.str                   \
             ); return 0
         switch (format) {
             call_rendering(json);
@@ -202,17 +218,19 @@ int terminal_emulator_set_log_function_ctx(
 {
     return_if(!emu);
 
-    Panic_errno(emu->emulator.setLogFunction([log_func, ctx](char const * s) { log_func(ctx, s); }));
+    Panic_errno(emu->emulator.setLogFunction([log_func, ctx](char const * s, std::size_t len) {
+        log_func(ctx, s, len);
+    }));
     return 0;
 }
 
 REDEMPTION_LIB_EXPORT
-int terminal_emulator_feed(TerminalEmulator * emu, char const * s, int n) noexcept
+int terminal_emulator_feed(TerminalEmulator * emu, char const * s, std::size_t len) noexcept
 {
     return_if(!emu);
 
     auto send_fn = [emu](rvt::ucs4_char ucs) { emu->emulator.receiveChar(ucs); };
-    Panic_errno(emu->decoder.decode(const_bytes_array(s, std::max(n, 0)), send_fn));
+    Panic_errno(emu->decoder.decode(const_bytes_array(s, len), send_fn));
     return 0;
 }
 
@@ -239,6 +257,17 @@ int terminal_emulator_buffer_prepare(
     return_if(!emu);
 
     return build_format_string(*emu, format, emu->str, extra_data);
+}
+
+REDEMPTION_LIB_EXPORT
+int terminal_emulator_buffer_prepare2(
+    TerminalEmulator * emu, OutputFormat format, char const * extra_data,
+    std::size_t extra_data_len
+) noexcept
+{
+    return_if(!emu);
+
+    return build_format_string(*emu, format, emu->str, {extra_data, extra_data_len});
 }
 
 namespace
@@ -330,6 +359,20 @@ int terminal_emulator_write(
 }
 
 REDEMPTION_LIB_EXPORT
+int terminal_emulator_write2(
+    TerminalEmulator * emu, OutputFormat format, char const * extra_data,
+    std::size_t extra_data_len,
+    char const * filename, int mode, CreateFileMode create_mode
+) noexcept
+{
+    return_if(!filename);
+    if (int err = terminal_emulator_buffer_prepare2(emu, format, extra_data, extra_data_len)) {
+        return err;
+    }
+    return terminal_emulator_write_buffer(emu, filename, mode, create_mode);
+}
+
+REDEMPTION_LIB_EXPORT
 int terminal_emulator_write_integrity(
     TerminalEmulator * emu, OutputFormat format, char const * extra_data,
     char const * filename, char const * prefix_tmp_filename, int mode
@@ -337,6 +380,20 @@ int terminal_emulator_write_integrity(
 {
     return_if(!filename);
     if (int err = terminal_emulator_buffer_prepare(emu, format, extra_data)) {
+        return err;
+    }
+    return terminal_emulator_write_buffer_integrity(emu, filename, prefix_tmp_filename, mode);
+}
+
+REDEMPTION_LIB_EXPORT
+int terminal_emulator_write_integrity2(
+    TerminalEmulator * emu, OutputFormat format, char const * extra_data,
+    std::size_t extra_data_len,
+    char const * filename, char const * prefix_tmp_filename, int mode
+) noexcept
+{
+    return_if(!filename);
+    if (int err = terminal_emulator_buffer_prepare2(emu, format, extra_data, extra_data_len)) {
         return err;
     }
     return terminal_emulator_write_buffer_integrity(emu, filename, prefix_tmp_filename, mode);
