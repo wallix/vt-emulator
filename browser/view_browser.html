@@ -29,11 +29,14 @@
 // cd ${BUILD_DIR}
 // ln -s ${VT_EMULATOR}/browser/* .
 // python3 -m http.server 4104
-// script -f >(./terminal_browser screen.json)
+// script -f >(./terminal_browser ${COLUMNS}x${LINES} screen.json)
 // xdg-open http://localhost:4104/view_browser.html
 
 const msDelay = document.location.search.replace(/[^0-9.]/g, '')*1000 || 3000;
 const view = document.getElementById("tty-player");
+
+console.log(`delay: ${msDelay/1000}s`);
+
 (function loop() {
     fetch('screen.json')
     .then((response) => {

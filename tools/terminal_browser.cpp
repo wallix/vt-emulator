@@ -22,10 +22,75 @@
 
 #include "rvt_lib/terminal_emulator.hpp"
 
-#include <iostream>
+#include <string_view>
+#include <charconv>
 #include <memory>
 
 #include <cstring>
+#include <cstdio>
+
+#include <unistd.h>
+
+namespace
+{
+
+bool parse_size(std::string_view str, int& result_columns, int& result_lines)
+{
+    uint16_t lines = 0;
+    uint16_t columns = 0;
+
+    auto
+    r = std::from_chars(str.begin(), str.end(), columns);
+    if (r.ec != std::errc() || r.ptr == str.end())
+    {
+        return false;
+    }
+
+    r = std::from_chars(r.ptr+1, str.end(), lines);
+    if (r.ec != std::errc() || r.ptr != str.end())
+    {
+        return false;
+    }
+
+    result_columns = static_cast<int>(columns);
+    result_lines = static_cast<int>(lines);
+    return true;
+}
+
+struct Cli
+{
+    int lines = 68;
+    int columns = 117;
+    char const* filename = "screen.json";
+
+    bool parse(int ac, char ** av)
+    {
+        if (ac > 1)
+        {
+            std::string_view p1 = av[1];
+            if (p1 == "-h" || p1 == "--help")
+            {
+                return false;
+            }
+
+            if ('0' <= av[1][0] && av[1][0] <= '9' && parse_size(p1, columns, lines))
+            {
+                if (ac > 2)
+                {
+                    filename = av[2];
+                }
+            }
+            else
+            {
+                filename = av[1];
+            }
+        }
+
+        return true;
+    }
+};
+
+} // anonymous namespace
 
 using rvt_lib::TerminalEmulator;
 using rvt_lib::OutputFormat;
@@ -33,32 +98,51 @@ using rvt_lib::OutputFormat;
 struct TerminalEmulatorDeleter
 {
     void operator()(TerminalEmulator * p) noexcept
-    { terminal_emulator_deinit(p); }
+    {
+        terminal_emulator_deinit(p);
+    }
 };
 
 int main(int ac, char ** av)
 {
-    std::unique_ptr<TerminalEmulator, TerminalEmulatorDeleter> uptr{terminal_emulator_init(68, 117)};
+    Cli cli;
+
+    if (!cli.parse(ac, av))
+    {
+        printf("Usage: %s ${COLUMNS}x${LINES} [json_filename]\n", av[0]);
+        return 0;
+    }
+
+    std::unique_ptr<TerminalEmulator, TerminalEmulatorDeleter> uptr{
+        terminal_emulator_init(cli.lines, cli.columns)
+    };
+
     auto emu = uptr.get();
-    terminal_emulator_set_log_function(emu, [](char const * s) { std::cerr << s << std::endl; });
     terminal_emulator_set_title(emu, "No title");
+    terminal_emulator_set_log_function(emu, [](char const * s, std::size_t /*len*/) {
+        puts(s);
+    });
 
-    auto filename = ac > 1 ? av[1] : "screen.json";
-    char c;
-    int n = 0;
-    #define PError(x) do { if (int err = (x)) std::cerr << (err < 0 ? "internal error" : strerror(err)) << std::endl; } while (0)
-    while (std::cin.get(c)) {
-        PError(terminal_emulator_feed(emu, &c, 1));
+    #define PError(x) do { if (int err = (x))                        \
+        fprintf(stderr, "internal error: %s on " #x, strerror(err)); \
+    } while (0)
 
-        if (c == '\n' || ++n == 100) {
-            n = 0;
+    for (;;)
+    {
+        constexpr std::size_t buflen = 4096;
+        char buf[buflen];
+        ssize_t result = read(0, buf, buflen);
+        if (result > 0)
+        {
+            PError(terminal_emulator_feed(emu, buf, std::size_t(result)));
             PError(terminal_emulator_write_integrity(
-                emu, OutputFormat::json, nullptr, filename, filename, 0660
+                emu, OutputFormat::json, nullptr, cli.filename, cli.filename, 0660
             ));
         }
+        else
+        {
+            PError(terminal_emulator_finish(emu));
+            break;
+        }
     }
-    PError(terminal_emulator_finish(emu));
-    PError(terminal_emulator_write_integrity(
-        emu, OutputFormat::json, nullptr, filename, filename, 0660
-    ));
 }
