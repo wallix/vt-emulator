@@ -52,7 +52,38 @@ namespace rvt_lib
 
     struct TerminalEmulatorBuffer
     {
+        void * ctx;
+        BufferGetBufferFn * get_buffer_fn;
+        BufferExtraMemoryAllocatorFn * extra_memory_allocator_fn;
+        BufferSetFinalBufferFn * set_final_buffer_fn;
+        BufferClearFn * clear_fn;
+        BufferDeleteCtxFn * delete_ctx_fn;
+        void(*delete_self)(TerminalEmulatorBuffer* self) noexcept;
+    };
+
+    struct TerminalEmulatorBufferWithVector : TerminalEmulatorBuffer
+    {
         std::vector<char> v;
+
+        TerminalEmulatorBufferWithVector() noexcept(noexcept(std::vector<char>()))
+        : TerminalEmulatorBuffer{
+            &v,
+            [](void* ctx, std::size_t * output_len) noexcept {
+                auto* v = static_cast<std::vector<char>*>(ctx);
+                *output_len = v->size();
+                return v->data();
+            },
+            rvt::RenderingBuffer::from_vector(v).allocate,
+            rvt::RenderingBuffer::from_vector(v).set_final_buffer,
+            [](void* ctx) noexcept {
+                *static_cast<std::vector<char>*>(ctx) = std::vector<char>();
+            },
+            [](void* /*ctx*/) noexcept {},
+            [](TerminalEmulatorBuffer* self) noexcept {
+                delete static_cast<TerminalEmulatorBufferWithVector*>(self);
+            }
+        }
+        {}
     };
 }
 
@@ -78,20 +109,35 @@ static bool write_all(int fd, const void * data, size_t len) noexcept
     return true;
 }
 
+static bool write_all(int fd, TerminalEmulatorBuffer const * buffer) noexcept
+{
+    std::size_t len = 0;
+    char* data = buffer->get_buffer_fn(buffer->ctx, &len);
+    return write_all(fd, data, len);
+}
+
 static int build_format_string(
     TerminalEmulatorBuffer & buffer, TerminalEmulator & emu,
     OutputFormat format, std::string_view extra_data
 ) noexcept
 {
+    std::size_t len = 0;
+    char* data = buffer.get_buffer_fn(buffer.ctx, &len);
+    rvt::RenderingBuffer rendering_buffer {
+        buffer.ctx,
+        data, len,
+        buffer.extra_memory_allocator_fn,
+        buffer.set_final_buffer_fn
+    };
     try {
-        #define call_rendering(Format)           \
-            case OutputFormat::Format:           \
-            buffer.v = rvt::Format##_rendering(  \
-                emu.emulator.getWindowTitle(),   \
-                emu.emulator.getCurrentScreen(), \
-                rvt::xterm_color_table,          \
-                extra_data                       \
-            ); return 0
+        #define call_rendering(Format)               \
+            case OutputFormat::Format:               \
+                rvt::Format##_rendering(             \
+                    emu.emulator.getWindowTitle(),   \
+                    emu.emulator.getCurrentScreen(), \
+                    rvt::xterm_color_table,          \
+                    rendering_buffer, extra_data     \
+                ); return 0
         switch (format) {
             call_rendering(json);
             call_rendering(ansi);
@@ -219,14 +265,36 @@ int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns) noe
 REDEMPTION_LIB_EXPORT
 TerminalEmulatorBuffer* terminal_emulator_buffer_new() noexcept
 {
-    static_assert(noexcept(TerminalEmulatorBuffer()));
-    return new(std::nothrow) TerminalEmulatorBuffer;
+    static_assert(noexcept(rvt_lib::TerminalEmulatorBufferWithVector()));
+    return new(std::nothrow) rvt_lib::TerminalEmulatorBufferWithVector{};
+}
+
+REDEMPTION_LIB_EXPORT
+TerminalEmulatorBuffer * terminal_emulator_buffer_new_with_custom_allocator(
+    void * ctx,
+    BufferGetBufferFn * get_buffer_fn,
+    BufferExtraMemoryAllocatorFn * extra_memory_allocator_fn,
+    BufferSetFinalBufferFn * set_final_buffer_fn,
+    BufferClearFn * clear_fn,
+    BufferDeleteCtxFn * delete_ctx_fn) noexcept
+{
+    return new(std::nothrow) TerminalEmulatorBuffer{
+        ctx,
+        get_buffer_fn,
+        extra_memory_allocator_fn,
+        set_final_buffer_fn,
+        clear_fn,
+        delete_ctx_fn,
+        [](TerminalEmulatorBuffer* self) noexcept { delete self; }
+    };
 }
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_delete(TerminalEmulatorBuffer * buffer) noexcept
 {
-    delete buffer;
+    return_if(!buffer);
+    buffer->delete_ctx_fn(buffer->ctx);
+    buffer->delete_self(buffer);
     return 0;
 }
 
@@ -262,17 +330,15 @@ char const * terminal_emulator_buffer_get_data(
         return nullptr;
     }
 
-    if (REDEMPTION_LIKELY(output_len)) {
-        *output_len = buffer->v.size();
-    }
-    return buffer->v.data();
+    std::size_t output_len2;
+    return buffer->get_buffer_fn(buffer->ctx, output_len ? output_len : &output_len2);
 }
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_clear_data(TerminalEmulatorBuffer * buffer) noexcept
 {
     return_if(!buffer);
-    buffer->v = std::vector<char>();
+    buffer->clear_fn(buffer->ctx);
     return 0;
 }
 
@@ -300,7 +366,7 @@ int terminal_emulator_buffer_write(
     int fd = ::open(filename, O_WRONLY | create_file_mode(create_mode), mode);
     return_errno_if(fd == -1);
 
-    if (!write_all(fd, buffer->v.data(), buffer->v.size())) {
+    if (!write_all(fd, buffer)) {
         auto err = errno;
         close(fd);
         unlink(filename);
@@ -331,7 +397,7 @@ int terminal_emulator_buffer_write_integrity(
     return_errno_if(fd == -1);
 
     if (fchmod(fd, mode) == -1
-     || !write_all(fd, buffer->v.data(), buffer->v.size())
+     || !write_all(fd, buffer)
      || rename(tmpfilename, filename) == -1
     ) {
         auto const err = errno;

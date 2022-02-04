@@ -52,6 +52,12 @@ using rvt_lib::OutputFormat;
 using rvt_lib::TranscriptPrefix;
 using rvt_lib::CreateFileMode;
 
+using BufferGetBufferFn = char*(void* ctx, std::size_t * output_len) noexcept;
+using BufferExtraMemoryAllocatorFn = char*(void* ctx, std::size_t extra_capacity, char* p, std::size_t used_size);
+using BufferSetFinalBufferFn = void(void* ctx, char* p, std::size_t used_size);
+using BufferClearFn = void(void* ctx) noexcept;
+using BufferDeleteCtxFn = void(void* ctx) noexcept;
+
 /// \return  0 if success, -2 if bad argument (emu is null, bad format, bad size, etc), -1 if internal error with `errno` code to 0 (bad alloc, etc) and > 0 is an `errno` code
 //@{
 REDEMPTION_LIB_EXPORT
@@ -95,6 +101,15 @@ int terminal_emulator_resize(TerminalEmulator *, int lines, int columns) noexcep
 //BEGIN buffer
 REDEMPTION_LIB_EXPORT
 TerminalEmulatorBuffer * terminal_emulator_buffer_new() noexcept;
+
+REDEMPTION_LIB_EXPORT
+TerminalEmulatorBuffer * terminal_emulator_buffer_new_with_custom_allocator(
+    void * ctx,
+    BufferGetBufferFn * get_buffer_fn,
+    BufferExtraMemoryAllocatorFn * extra_memory_allocator_fn,
+    BufferSetFinalBufferFn * set_final_buffer_fn,
+    BufferClearFn * clear_fn,
+    BufferDeleteCtxFn * delete_ctx_fn) noexcept;
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_delete(TerminalEmulatorBuffer *) noexcept;
