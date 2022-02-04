@@ -60,20 +60,39 @@ using rvt_lib::OutputFormat;
 
 constexpr auto force_create = CreateFileMode::force_create;
 
-struct TerminalEmulatorDeleter
+template<>
+struct std::default_delete<TerminalEmulator>
 {
     void operator()(TerminalEmulator * p) noexcept
-    { BOOST_CHECK_EQUAL(0, terminal_emulator_deinit(p)); }
+    { BOOST_CHECK_EQUAL(0, terminal_emulator_delete(p)); }
 };
+
+
+template<>
+struct std::default_delete<TerminalEmulatorBuffer>
+{
+    void operator()(TerminalEmulatorBuffer * p) noexcept
+    { BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_delete(p)); }
+};
+
+static std::string_view get_data(TerminalEmulatorBuffer * buf)
+{
+    std::size_t len = 0;
+    char const* data = terminal_emulator_buffer_get_data(buf, &len);
+    return {data, len};
+}
 
 static int global_i = 1;
 
 BOOST_AUTO_TEST_CASE(TestTermEmu)
 {
-    std::unique_ptr<TerminalEmulator, TerminalEmulatorDeleter> uemu{terminal_emulator_init(3, 10)};
+    std::unique_ptr<TerminalEmulator> uemu{terminal_emulator_new(3, 10)};
+    std::unique_ptr<TerminalEmulatorBuffer> uemubuf{terminal_emulator_buffer_new()};
     auto emu = uemu.get();
+    auto emubuf = uemubuf.get();
 
     BOOST_CHECK(emu);
+    BOOST_CHECK(emubuf);
     BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function(emu, [](char const *, std::size_t) { global_i = 2; }));
     BOOST_CHECK_EQUAL(global_i, 1);
     BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[324a", 6));
@@ -89,46 +108,40 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
 
     char const * filename = "/tmp/termemu-test.json";
 
-    char const * contents = R"xxx({"x":3,"y":0,"lines":3,"columns":10,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"ABC"}]],[[{}]],[[{}]]]})xxx";
+    std::string_view contents = R"xxx({"x":3,"y":0,"lines":3,"columns":10,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"ABC"}]],[[{}]],[[{}]]]})xxx";
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emu, OutputFormat::json, nullptr));
-    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_buffer_size(emu));
-    BOOST_CHECK_EQUAL(contents, terminal_emulator_buffer_data(emu));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emubuf, emu, OutputFormat::json));
+    BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_write_buffer_integrity(emu, filename, filename, 0664));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_write_integrity(emubuf, filename, filename, 0664));
     BOOST_CHECK_EQUAL(contents, get_file_contents(filename));
     BOOST_CHECK_EQUAL(0, unlink(filename));
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_write_buffer(emu, filename, 0664, force_create));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_write(emubuf, filename, 0664, force_create));
     BOOST_CHECK_EQUAL(contents, get_file_contents(filename));
     BOOST_CHECK_EQUAL(0, unlink(filename));
 
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_reset(emu));
-    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_size(emu));
-    BOOST_CHECK_EQUAL("", terminal_emulator_buffer_data(emu));
+    BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_resize(emu, 2, 2));
 
     contents = R"xxx({"x":1,"y":0,"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare2(emu, OutputFormat::json, nullptr, 0));
-    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_buffer_size(emu));
-    BOOST_CHECK_EQUAL(contents, terminal_emulator_buffer_data(emu));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emubuf, emu, OutputFormat::json));
+    BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
     contents = R"xxx({"x":1,"y":0,"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]],"extra":"plop"})xxx";
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emu, OutputFormat::json, "\"plop\""));
-    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_buffer_size(emu));
-    BOOST_CHECK_EQUAL(contents, terminal_emulator_buffer_data(emu));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare2(emubuf, emu, OutputFormat::json, "\"plop\"", 6));
+    BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
     contents = R"xxx({"y":-1,"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[?25l", 6));
-    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emu, OutputFormat::json, nullptr));
-    BOOST_CHECK_EQUAL(strlen(contents), terminal_emulator_buffer_size(emu));
-    BOOST_CHECK_EQUAL(contents, terminal_emulator_buffer_data(emu));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emubuf, emu, OutputFormat::json));
+    BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
 
     // check error code
@@ -136,19 +149,23 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function(nullptr, [](char const *, std::size_t) {}));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_set_title(nullptr, "Lib test"));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_feed(nullptr, "\033[324a", 6));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_write_buffer(nullptr, filename, 0664, force_create));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_write_buffer_integrity(nullptr, filename, filename, 0664));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_prepare(nullptr, OutputFormat::json, nullptr));
-    BOOST_CHECK_EQUAL("", terminal_emulator_buffer_data(nullptr));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_size(nullptr));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_reset(nullptr));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_write(nullptr, filename, 0664, force_create));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_write_integrity(nullptr, filename, filename, 0664));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_prepare(nullptr, emu, OutputFormat::json));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_prepare(emubuf, nullptr, OutputFormat::json));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_prepare(nullptr, nullptr, OutputFormat::json));
+    BOOST_CHECK_NE(nullptr, terminal_emulator_buffer_get_data(emubuf, nullptr));
+    BOOST_CHECK_EQUAL(nullptr, terminal_emulator_buffer_get_data(nullptr, nullptr));
+    std::size_t len{};
+    BOOST_CHECK_EQUAL(nullptr, terminal_emulator_buffer_get_data(nullptr, &len));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_clear_data(nullptr));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_resize(emu, -3, 3));
     const unsigned very_big_size = (~0u>>1) - 1u; // -1u for inhibit integer overflow (uint -> int)
     BOOST_CHECK_EQUAL(ENOMEM, terminal_emulator_resize(emu, very_big_size, very_big_size)); // bad alloc
 
-    BOOST_CHECK_LT(0, terminal_emulator_write_buffer_integrity(emu, "/a/a", filename, 0664));
-    BOOST_CHECK_LT(0, terminal_emulator_write_buffer_integrity(emu, filename, "/a/a", 0664));
-    BOOST_CHECK_LT(0, terminal_emulator_write_buffer(emu, "/a/a", 0664, force_create));
+    BOOST_CHECK_LT(0, terminal_emulator_buffer_write_integrity(emubuf, "/a/a", filename, 0664));
+    BOOST_CHECK_LT(0, terminal_emulator_buffer_write_integrity(emubuf, filename, "/a/a", 0664));
+    BOOST_CHECK_LT(0, terminal_emulator_buffer_write(emubuf, "/a/a", 0664, force_create));
 }
 
 BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)

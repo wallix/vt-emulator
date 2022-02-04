@@ -99,7 +99,15 @@ struct TerminalEmulatorDeleter
 {
     void operator()(TerminalEmulator * p) noexcept
     {
-        terminal_emulator_deinit(p);
+        terminal_emulator_delete(p);
+    }
+};
+
+struct TerminalEmulatorBufferDeleter
+{
+    void operator()(TerminalEmulator * p) noexcept
+    {
+        terminal_emulator_delete(p);
     }
 };
 
@@ -113,11 +121,9 @@ int main(int ac, char ** av)
         return 0;
     }
 
-    std::unique_ptr<TerminalEmulator, TerminalEmulatorDeleter> uptr{
-        terminal_emulator_init(cli.lines, cli.columns)
-    };
+    auto emu = terminal_emulator_new(cli.lines, cli.columns);
+    auto emu_buffer = terminal_emulator_buffer_new();
 
-    auto emu = uptr.get();
     terminal_emulator_set_title(emu, "No title");
     terminal_emulator_set_log_function(emu, [](char const * s, std::size_t /*len*/) {
         puts(s);
@@ -127,22 +133,20 @@ int main(int ac, char ** av)
         fprintf(stderr, "internal error: %s on " #x, strerror(err)); \
     } while (0)
 
-    for (;;)
+    constexpr std::size_t input_buf_len = 4096;
+    char input_buf[input_buf_len];
+    ssize_t result;
+    while ((result = read(0, input_buf, input_buf_len)) > 0)
     {
-        constexpr std::size_t buflen = 4096;
-        char buf[buflen];
-        ssize_t result = read(0, buf, buflen);
-        if (result > 0)
-        {
-            PError(terminal_emulator_feed(emu, buf, std::size_t(result)));
-            PError(terminal_emulator_write_integrity(
-                emu, OutputFormat::json, nullptr, cli.filename, cli.filename, 0660
-            ));
-        }
-        else
-        {
-            PError(terminal_emulator_finish(emu));
-            break;
-        }
+        PError(terminal_emulator_feed(emu, input_buf, std::size_t(result)));
+        PError(terminal_emulator_buffer_prepare(emu_buffer, emu, OutputFormat::json));
+        PError(terminal_emulator_buffer_write_integrity(emu_buffer, cli.filename, cli.filename, 0660));
     }
+
+    PError(terminal_emulator_finish(emu));
+    PError(terminal_emulator_buffer_prepare(emu_buffer, emu, OutputFormat::json));
+    PError(terminal_emulator_buffer_write_integrity(emu_buffer, cli.filename, cli.filename, 0660));
+
+    terminal_emulator_buffer_delete(emu_buffer);
+    terminal_emulator_delete(emu);
 }
