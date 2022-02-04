@@ -22,38 +22,47 @@
 
 #include "rvt/character.hpp"
 
-#include <string>
 #include <string_view>
+#include <vector>
 
 namespace rvt {
 
 class Screen;
 
-std::string json_rendering(
+struct RenderingBuffer
+{
+    using ExtraMemoryAllocator = char*(void* ctx, std::size_t extra_capacity, char* p, std::size_t used_size);
+    using SetFinalBuffer = void(void* ctx, char* p, std::size_t used_size);
+
+    void* ctx;
+    char* buffer;
+    std::size_t length;
+    ExtraMemoryAllocator* allocate;
+    SetFinalBuffer* set_final_buffer;
+
+    static RenderingBuffer from_vector(std::vector<char>& v);
+};
+
+void json_rendering(
     ucs4_carray_view title, Screen const & screen,
-    ColorTableView palette, std::string_view extra_data = {}
+    ColorTableView palette, RenderingBuffer buffer,
+    std::string_view extra_data = {}
 );
-std::string ansi_rendering(
+
+void ansi_rendering(
+    ucs4_carray_view title, Screen const & screen,
+    ColorTableView palette, RenderingBuffer buffer,
+    std::string_view extra_data = {}
+);
+
+std::vector<char> json_rendering(
     ucs4_carray_view title, Screen const & screen,
     ColorTableView palette, std::string_view extra_data = {}
 );
 
-inline std::string json_rendering(
+std::vector<char> ansi_rendering(
     ucs4_carray_view title, Screen const & screen,
-    ColorTableView palette, char const* extra_data
-)
-{
-    return json_rendering(title, screen, palette,
-        extra_data ? std::string_view(extra_data) : std::string_view());
-}
-
-inline std::string ansi_rendering(
-    ucs4_carray_view title, Screen const & screen,
-    ColorTableView palette, char const* extra_data
-)
-{
-    return ansi_rendering(title, screen, palette,
-        extra_data ? std::string_view(extra_data) : std::string_view());
-}
+    ColorTableView palette, std::string_view extra_data = {}
+);
 
 }

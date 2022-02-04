@@ -31,9 +31,9 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
 
 #include <unistd.h> // unlink
-#include <stdio.h> // rename
 #include <fcntl.h> // O_* flags
 #include <sys/stat.h> // fchmod
 
@@ -44,7 +44,6 @@ namespace rvt_lib
     {
         rvt::VtEmulator emulator;
         rvt::Utf8Decoder decoder;
-        std::string str;
 
         TerminalEmulator(int lines, int columns)
         : emulator(lines, columns)
@@ -81,18 +80,18 @@ static bool write_all(int fd, const void * data, size_t len) noexcept
 
 static int build_format_string(
     TerminalEmulatorBuffer & buffer, TerminalEmulator & emu,
-    OutputFormat format, std::string & out, std::string_view extra_data
+    OutputFormat format, std::string_view extra_data
 ) noexcept
 {
     try {
         #define call_rendering(Format)           \
             case OutputFormat::Format:           \
-            out = rvt::Format##_rendering(       \
+            buffer.v = rvt::Format##_rendering(  \
                 emu.emulator.getWindowTitle(),   \
                 emu.emulator.getCurrentScreen(), \
                 rvt::xterm_color_table,          \
                 extra_data                       \
-            ); buffer.v.assign(out.begin(), out.end()); return 0
+            ); return 0
         switch (format) {
             call_rendering(json);
             call_rendering(ansi);
@@ -238,7 +237,7 @@ int terminal_emulator_buffer_prepare(
 {
     return_if(!buffer || !emu);
 
-    return build_format_string(*buffer, *emu, format, emu->str, {});
+    return build_format_string(*buffer, *emu, format, {});
 }
 
 REDEMPTION_LIB_EXPORT
@@ -249,7 +248,7 @@ int terminal_emulator_buffer_prepare2(
 {
     return_if(!buffer || !emu);
 
-    return build_format_string(*buffer, *emu, format, emu->str, {extra_data, extra_data_len});
+    return build_format_string(*buffer, *emu, format, {extra_data, extra_data_len});
 }
 
 REDEMPTION_LIB_EXPORT

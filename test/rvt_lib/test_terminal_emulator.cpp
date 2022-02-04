@@ -111,6 +111,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     std::string_view contents = R"xxx({"x":3,"y":0,"lines":3,"columns":10,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"ABC"}]],[[{}]],[[{}]]]})xxx";
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emubuf, emu, OutputFormat::json));
+    BOOST_CHECK_EQUAL(contents.size(), get_data(emubuf).size());
     BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_write_integrity(emubuf, filename, filename, 0664));
@@ -122,6 +123,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(0, unlink(filename));
 
 
+    BOOST_CHECK_EQUAL(contents.size(), get_data(emubuf).size());
     BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
 
@@ -130,17 +132,20 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     contents = R"xxx({"x":1,"y":0,"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emubuf, emu, OutputFormat::json));
+    BOOST_CHECK_EQUAL(contents.size(), get_data(emubuf).size());
     BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
     contents = R"xxx({"x":1,"y":0,"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]],"extra":"plop"})xxx";
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare2(emubuf, emu, OutputFormat::json, "\"plop\"", 6));
+    BOOST_CHECK_EQUAL(contents.size(), get_data(emubuf).size());
     BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
     contents = R"xxx({"y":-1,"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[?25l", 6));
     BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emubuf, emu, OutputFormat::json));
+    BOOST_CHECK_EQUAL(contents.size(), get_data(emubuf).size());
     BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
 

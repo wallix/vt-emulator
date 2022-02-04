@@ -18,6 +18,7 @@
 *   Author(s): Jonathan Poelen
 */
 
+#include "utils/sugar/numerics/safe_conversions.hpp"
 #include "rvt/text_rendering.hpp"
 
 #include "rvt/character.hpp"
@@ -30,25 +31,70 @@
 
 namespace rvt {
 
-struct Buf
+namespace
 {
-    char buf[4096];
-    char * s = buf;
 
-    void unsafe_push_ucs(ucs4_char ucs)
+struct RenderingBuffer2
+{
+    RenderingBuffer2(RenderingBuffer buffer) noexcept
+    : _p(buffer.buffer)
+    , _ctx(buffer.ctx)
+    , _start_p(buffer.buffer)
+    , _end_p(buffer.buffer + buffer.length)
+    , _allocate(buffer.allocate)
+    , _set_final_buffer(buffer.set_final_buffer)
+    {}
+
+    void prepare_buffer(std::size_t min_remaining, std::size_t extra_capacity)
     {
-        switch (ucs) {
-            case '\\': assert(remaining() >= 2); *s++ = '\\'; *s++ = '\\'; break;
-            case '"': assert(remaining() >= 2); *s++ = '\\'; *s++ = '"'; break;
-            default : assert(remaining() >= 4); s += unsafe_ucs4_to_utf8(ucs, s); break;
+        if (REDEMPTION_UNLIKELY(remaining() < min_remaining)) {
+            allocate(extra_capacity);
         }
     }
 
-    void unsafe_push_character(Character const & ch, const rvt::ExtendedCharTable & extended_char_table, std::size_t max_size, std::string & out)
+    void set_final()
+    {
+        _set_final_buffer(_ctx, _start_p, buffer_length());
+    }
+
+    void allocate(std::size_t extra_capacity)
+    {
+        _p = _allocate(_ctx, extra_capacity, _start_p, buffer_length());
+        _start_p = _p;
+        _end_p = _p + extra_capacity;
+    }
+
+    std::size_t buffer_length() const noexcept
+    {
+        return checked_int(_p - _start_p);
+    }
+
+    std::size_t remaining() const noexcept
+    {
+        return checked_int(_end_p - _p);
+    }
+
+    void pop_c()
+    {
+        assert(_p > _start_p);
+        --_p;
+    }
+
+    void unsafe_push_ucs(ucs4_char ucs)
+    {
+        // TODO optimize that
+        switch (ucs) {
+            case '\\': assert(remaining() >= 2); *_p++ = '\\'; *_p++ = '\\'; break;
+            case '"': assert(remaining() >= 2); *_p++ = '\\'; *_p++ = '"'; break;
+            default : assert(remaining() >= 4); _p += unsafe_ucs4_to_utf8(ucs, _p); break;
+        }
+    }
+
+    void unsafe_push_character(Character const & ch, const rvt::ExtendedCharTable & extended_char_table, std::size_t extra_capacity)
     {
         if (ch.isRealCharacter) {
-            if (ch.is_extended()) {
-                this->push_ucs_array(extended_char_table[ch.character], max_size, out);
+            if (REDEMPTION_UNLIKELY(ch.is_extended())) {
+                this->push_ucs_array(extended_char_table[ch.character], extra_capacity);
             }
             else {
                 this->unsafe_push_ucs(ch.character);
@@ -67,45 +113,30 @@ struct Buf
         }
     }
 
-    void push_ucs_array(ucs4_carray_view ucs_array, std::size_t max_size, std::string & out)
+    void push_ucs_array(ucs4_carray_view ucs_array, std::size_t extra_capacity)
     {
-        while (ucs_array.size() * 4u + max_size >= this->remaining()) {
-            auto const offset = this->remaining() / 4u;
-            this->unsafe_push_ucs_array(ucs_array.first(offset));
-            ucs_array = ucs_array.subarray(offset);
-            this->flush(out);
-        }
+        prepare_buffer(ucs_array.size() * 4, std::max(extra_capacity, ucs_array.size() * 4u));
         this->unsafe_push_ucs_array(ucs_array);
     }
 
-    template<std::size_t n>
-    void unsafe_push_s(char const (&a)[n])
+    void unsafe_push_s(chars_view str)
     {
-        assert(remaining() >= n);
-        memcpy(s, a, n-1);
-        s += n-1;
+        assert(remaining() >= str.size());
+        memcpy(_p, str.data(), str.size());
+        _p += str.size();
+    }
+
+    void unsafe_push_s(std::string_view str)
+    {
+        unsafe_push_s(chars_view{str.data(), str.size()});
     }
 
     void unsafe_push_c(ucs4_char c) = delete; // unused
     void unsafe_push_c(char c)
     {
         assert(remaining() >= 1);
-        *s++ = c;
+        *_p++ = c;
     }
-
-    #ifndef NDEBUG
-    ~Buf() {
-        assert(std::uncaught_exceptions() || s == buf);
-    }
-    #endif
-
-    void flush(std::string & out)
-    {
-        out.append(buf, s - buf);
-        s = buf;
-    }
-
-    std::size_t remaining() const { return static_cast<std::size_t>(std::end(buf) - s); }
 
     template<class... Ts>
     void unsafe_push_values(Ts const&... xs)
@@ -113,26 +144,78 @@ struct Buf
         (..., _unsafe_push_value(xs));
     }
 
-private:
-    template<class T>
-    void _unsafe_push_value(T const& x)
+    template<class... Ts>
+    void push_values(Ts const&... xs)
     {
-        if constexpr (std::is_same_v<T, int>)
-        {
-            auto r = std::to_chars(s, std::end(buf), x);
-            assert(r.ec == std::errc());
-            s = r.ptr;
-        }
-        else if constexpr (std::is_same_v<T, char>)
-        {
-            unsafe_push_c(x);
-        }
-        else
-        {
-            unsafe_push_s(x);
-        }
+        std::size_t len = (... + _value_size(xs));
+        prepare_buffer(len, std::max<std::size_t>(4096, len * 2));
+        (..., _unsafe_push_value(xs));
     }
+
+private:
+    void _unsafe_push_value(int x)
+    {
+        auto r = std::to_chars(_p, _p + remaining(), x);
+        assert(r.ec == std::errc());
+        _p = r.ptr;
+    }
+
+    void _unsafe_push_value(uint32_t x)
+    {
+        auto r = std::to_chars(_p, _p + remaining(), x);
+        assert(r.ec == std::errc());
+        _p = r.ptr;
+    }
+
+    void _unsafe_push_value(char x)
+    {
+        unsafe_push_c(x);
+    }
+
+    void _unsafe_push_value(ucs4_carray_view x)
+    {
+        unsafe_push_ucs_array(x);
+    }
+
+    void _unsafe_push_value(chars_view x)
+    {
+        unsafe_push_s(x);
+    }
+
+    // static std::size_t _value_size(int)
+    // {
+    //     return std::numeric_limits<int>::digits10 + 2;
+    // }
+    //
+    // static std::size_t _value_size(uint32_t)
+    // {
+    //     return std::numeric_limits<uint32_t>::digits10 + 2;
+    // }
+
+    static std::size_t _value_size(char)
+    {
+        return 1;
+    }
+
+    static std::size_t _value_size(ucs4_carray_view ucs_array)
+    {
+        return ucs_array.size() * 4u;
+    }
+
+    // static std::size_t _value_size(chars_view av)
+    // {
+    //     return av.size();
+    // }
+
+    char * _p;
+    void * _ctx;
+    char * _start_p;
+    char * _end_p;
+    RenderingBuffer::ExtraMemoryAllocator * _allocate;
+    RenderingBuffer::SetFinalBuffer * _set_final_buffer;
 };
+
+}
 
 // format = "{
 //      $cursor,
@@ -155,192 +238,223 @@ private:
 // $background = "b: $color"
 // $color = %d
 //      decimal rgb
-std::string json_rendering(
-    array_view<ucs4_char const> title,
+void json_rendering(
+    ucs4_carray_view title,
     Screen const & screen,
     ColorTableView palette,
+    RenderingBuffer buffer,
     std::string_view extra_data
 ) {
     auto color2int = [](rvt::Color const & color){
-        return (color.red() << 16) | (color.green() << 8) |  (color.blue() << 0);
+        return uint32_t((color.red() << 16) | (color.green() << 8) |  (color.blue() << 0));
     };
 
-    std::string out;
-    out.reserve(screen.getLines() * screen.getColumns() * 7);
+    RenderingBuffer2 buf{buffer};
+
+    buf.prepare_buffer(4096, std::max(title.size() * 4 + 512, std::size_t(4096)));
+
+    if (screen.hasCursorVisible()) {
+        buf.unsafe_push_values("{\"x\":"_av, screen.getCursorX(),
+                               ",\"y\":"_av, screen.getCursorY());
+    }
+    else {
+        buf.unsafe_push_s(R"({"y":-1)"_av);
+    }
+    buf.unsafe_push_values(",\"lines\":"_av, screen.getLines(),
+                           ",\"columns\":"_av, screen.getColumns(),
+                           ",\"title\":\""_av);
+    buf.unsafe_push_ucs_array(title);
+    buf.unsafe_push_values("\",\"style\":{\"r\":0"
+                           ",\"f\":"_av, color2int(palette[0]),
+                           ",\"b\":"_av, color2int(palette[1]), "},\"data\":["_av);
+
     constexpr std::size_t max_size_by_loop = 111; // approximate
 
-    Buf buf;
-    if (screen.hasCursorVisible()) {
-        buf.unsafe_push_values("{\"x\":", screen.getCursorX(),
-                               ",\"y\":", screen.getCursorY());
-    }
-    else {
-        buf.unsafe_push_s(R"({"y":-1)");
-    }
-    buf.unsafe_push_values(",\"lines\":", screen.getLines(),
-                           ",\"columns\":", screen.getColumns(),
-                           ",\"title\":\"");
-    buf.push_ucs_array(title, max_size_by_loop, out);
-    buf.unsafe_push_values("\",\"style\":{\"r\":0"
-                           ",\"f\":", color2int(palette[0]),
-                           ",\"b\":", color2int(palette[1]), "},\"data\":[");
+    if (screen.getColumns() && screen.getLines()) {
+        rvt::Character const default_ch; // Default format
+        rvt::Character const* previous_ch = &default_ch;
 
-    if (!screen.getColumns() || !screen.getLines()) {
-        buf.unsafe_push_s("]}");
-        buf.flush(out);
-        return out;
-    }
+        for (auto const & line : screen.getScreenLines()) {
+            buf.unsafe_push_s("[[{"_av);
 
-    rvt::Character const default_ch; // Default format
-    rvt::Character const* previous_ch = &default_ch;
+            bool is_s_enable = false;
+            for (rvt::Character const & ch : line) {
+                buf.prepare_buffer(max_size_by_loop, 4096);
 
-    for (auto const & line : screen.getScreenLines()) {
-        buf.unsafe_push_s("[[{");
-        if (buf.remaining() <= max_size_by_loop) {
-            buf.flush(out);
-        }
+                constexpr auto rendition_flags
+                    = rvt::Rendition::Bold
+                    | rvt::Rendition::Italic
+                    | rvt::Rendition::Underline
+                    | rvt::Rendition::Blink;
+                bool const is_same_bg = ch.backgroundColor == previous_ch->backgroundColor;
+                bool const is_same_fg = ch.foregroundColor == previous_ch->foregroundColor;
+                bool const is_same_rendition
+                    = (ch.rendition & rendition_flags) == (previous_ch->rendition & rendition_flags);
+                bool const is_same_format = is_same_bg & is_same_fg & is_same_rendition;
+                if (!is_same_format) {
+                    if (is_s_enable) {
+                        buf.unsafe_push_s("\"},{"_av);
+                    }
+                    if (!is_same_rendition) {
+                        // TODO table of u8
+                        int const r = (0
+                            | (bool(ch.rendition & rvt::Rendition::Bold)      ? 1 : 0)
+                            | (bool(ch.rendition & rvt::Rendition::Italic)    ? 2 : 0)
+                            | (bool(ch.rendition & rvt::Rendition::Underline) ? 4 : 0)
+                            | (bool(ch.rendition & rvt::Rendition::Blink)     ? 8 : 0)
+                        );
+                        buf.unsafe_push_values("\"r\":"_av, r, ',');
+                    }
 
-        bool is_s_enable = false;
-        for (rvt::Character const & ch : line) {
-            if (buf.remaining() <= max_size_by_loop) {
-                buf.flush(out);
+                    if (!is_same_fg) {
+                        buf.unsafe_push_values("\"f\":"_av,
+                            color2int(ch.foregroundColor.color(palette)), ',');
+                    }
+                    if (!is_same_bg) {
+                        buf.unsafe_push_values("\"b\":"_av,
+                            color2int(ch.backgroundColor.color(palette)), ',');
+                    }
+
+                    is_s_enable = false;
+                }
+
+                if (!is_s_enable) {
+                    is_s_enable = true;
+                    buf.unsafe_push_s(R"("s":")"_av);
+                }
+
+                buf.unsafe_push_character(ch, screen.extendedCharTable(), 4096);
+
+                previous_ch = &ch;
             }
 
-            constexpr auto rendition_flags
-              = rvt::Rendition::Bold
-              | rvt::Rendition::Italic
-              | rvt::Rendition::Underline
-              | rvt::Rendition::Blink;
-            bool const is_same_bg = ch.backgroundColor == previous_ch->backgroundColor;
-            bool const is_same_fg = ch.foregroundColor == previous_ch->foregroundColor;
-            bool const is_same_rendition
-              = (ch.rendition & rendition_flags) == (previous_ch->rendition & rendition_flags);
-            bool const is_same_format = is_same_bg & is_same_fg & is_same_rendition;
-            if (!is_same_format) {
-                if (is_s_enable) {
-                    buf.unsafe_push_s("\"},{");
-                }
-                if (!is_same_rendition) {
-                    int const r = (0
-                        | (bool(ch.rendition & rvt::Rendition::Bold)      ? 1 : 0)
-                        | (bool(ch.rendition & rvt::Rendition::Italic)    ? 2 : 0)
-                        | (bool(ch.rendition & rvt::Rendition::Underline) ? 4 : 0)
-                        | (bool(ch.rendition & rvt::Rendition::Blink)     ? 8 : 0)
-                    );
-                    buf.unsafe_push_values("\"r\":", r, ",");
-                }
-
-                if (!is_same_fg) {
-                    buf.unsafe_push_values("\"f\":",
-                        color2int(ch.foregroundColor.color(palette)), ",");
-                }
-                if (!is_same_bg) {
-                    buf.unsafe_push_values("\"b\":",
-                        color2int(ch.backgroundColor.color(palette)), ",");
-                }
-
-                is_s_enable = false;
+            buf.prepare_buffer(max_size_by_loop, 4096);
+            if (is_s_enable) {
+                buf.unsafe_push_c('"');
             }
-
-            if (!is_s_enable) {
-                is_s_enable = true;
-                buf.unsafe_push_s(R"("s":")");
-            }
-
-            buf.unsafe_push_character(ch, screen.extendedCharTable(), max_size_by_loop, out);
-
-            previous_ch = &ch;
+            buf.unsafe_push_s("}]],"_av);
         }
 
-        if (is_s_enable) {
-            buf.unsafe_push_c('"');
-        }
-        buf.unsafe_push_s("}]],");
+        buf.pop_c();
     }
-    --buf.s;
 
     if (!extra_data.empty()) {
-        buf.unsafe_push_s("],\"extra\":");
-        buf.flush(out);
-        out += extra_data;
-        out += '}';
+        buf.unsafe_push_s("],\"extra\":"_av);
+        buf.prepare_buffer(extra_data.size() + 1u, extra_data.size() + 1u);
+        buf.unsafe_push_s(extra_data);
+        buf.unsafe_push_c('}');
     }
     else {
-        buf.unsafe_push_s("]}");
-        buf.flush(out);
+        buf.unsafe_push_s("]}"_av);
     }
 
-    return out;
+    buf.set_final();
 }
 
-std::string ansi_rendering(
-    array_view<ucs4_char const> title,
+
+void ansi_rendering(
+    ucs4_carray_view title,
     Screen const & screen,
     ColorTableView palette,
+    RenderingBuffer buffer,
     std::string_view extra_data
 ) {
-    auto write_color = [palette](Buf & buf, char cmd, rvt::CharacterColor const & ch_color) {
+    auto write_color = [palette](RenderingBuffer2 & buf, char cmd, rvt::CharacterColor const & ch_color) {
         auto color = ch_color.color(palette);
-        buf.unsafe_push_values(';', cmd, "8;2;",
+        // TODO table of color
+        buf.unsafe_push_values(';', cmd, '8', ';', '2', ';',
                                color.red()+0, ';',
                                color.green()+0, ';',
                                color.blue()+0);
     };
 
-    std::string out;
-    out.reserve(screen.getLines() * screen.getColumns() * 4);
-    constexpr std::ptrdiff_t max_size_by_loop = 80; // approximate
+    RenderingBuffer2 buf{buffer};
 
-    Buf buf;
-    buf.unsafe_push_s("\033]");
-    buf.push_ucs_array(title, max_size_by_loop, out);
-    buf.unsafe_push_c('\a');
+    buf.prepare_buffer(4096, 4096);
+    buf.push_values('\033', ']', title, '\a');
 
     rvt::Character const default_ch; // Default format
     rvt::Character const* previous_ch = &default_ch;
 
-    for (auto const & line : screen.getScreenLines()) {
-        if (buf.remaining() >= max_size_by_loop) {
-            buf.flush(out);
-        }
+    constexpr std::size_t max_size_by_loop = 64; // approximate
 
+    for (auto const & line : screen.getScreenLines()) {
         for (rvt::Character const & ch : line) {
-            if (buf.remaining() >= max_size_by_loop) {
-                buf.flush(out);
-            }
+            buf.prepare_buffer(max_size_by_loop, 4096);
 
             bool const is_same_bg = ch.backgroundColor == previous_ch->backgroundColor;
             bool const is_same_fg = ch.foregroundColor == previous_ch->foregroundColor;
             bool const is_same_rendition = ch.rendition == previous_ch->rendition;
             bool const is_same_format = is_same_bg & is_same_fg & is_same_rendition;
             if (!is_same_format) {
-                buf.unsafe_push_s("\033[0");
+                buf.unsafe_push_s("\033[0"_av);
                 if (!is_same_format) {
                     auto const r = ch.rendition;
-                    if (bool(r & rvt::Rendition::Bold))     { buf.unsafe_push_s(";1"); }
-                    if (bool(r & rvt::Rendition::Italic))   { buf.unsafe_push_s(";3"); }
-                    if (bool(r & rvt::Rendition::Underline)){ buf.unsafe_push_s(";4"); }
-                    if (bool(r & rvt::Rendition::Blink))    { buf.unsafe_push_s(";5"); }
-                    if (bool(r & rvt::Rendition::Reverse))  { buf.unsafe_push_s(";6"); }
+                    if (bool(r & rvt::Rendition::Bold))     { buf.unsafe_push_s(";1"_av); }
+                    if (bool(r & rvt::Rendition::Italic))   { buf.unsafe_push_s(";3"_av); }
+                    if (bool(r & rvt::Rendition::Underline)){ buf.unsafe_push_s(";4"_av); }
+                    if (bool(r & rvt::Rendition::Blink))    { buf.unsafe_push_s(";5"_av); }
+                    if (bool(r & rvt::Rendition::Reverse))  { buf.unsafe_push_s(";6"_av); }
                 }
                 if (!is_same_fg) write_color(buf, '3', ch.foregroundColor);
                 if (!is_same_bg) write_color(buf, '4', ch.backgroundColor);
                 buf.unsafe_push_c('m');
             }
 
-            buf.unsafe_push_character(ch, screen.extendedCharTable(), max_size_by_loop, out);
+            buf.unsafe_push_character(ch, screen.extendedCharTable(), 4096);
 
             previous_ch = &ch;
         }
+
+        buf.prepare_buffer(max_size_by_loop, 4096);
         buf.unsafe_push_c('\n');
     }
 
-    buf.flush(out);
     if (!extra_data.empty()) {
-        out += extra_data;
+        buf.prepare_buffer(extra_data.size(), extra_data.size());
+        buf.unsafe_push_s(extra_data);
     }
 
-    return out;
+    buf.set_final();
+}
+
+
+RenderingBuffer RenderingBuffer::from_vector(std::vector<char>& v)
+{
+    auto allocate = [](void* ctx, std::size_t extra_capacity, char* p, std::size_t used_size){
+        auto v = static_cast<std::vector<char>*>(ctx);
+        std::size_t current_len = static_cast<std::size_t>(p - v->data()) + used_size;
+        v->resize(current_len + extra_capacity);
+        return v->data() + current_len;
+    };
+
+    auto set_final = [](void* ctx, char* p, std::size_t used_size) {
+        auto v = static_cast<std::vector<char>*>(ctx);
+        std::size_t current_len = static_cast<std::size_t>(p - v->data()) + used_size;
+        v->resize(current_len);
+    };
+
+    return RenderingBuffer{&v, v.data(), v.size(), allocate, set_final};
+}
+
+std::vector<char> json_rendering(
+    ucs4_carray_view title, Screen const & screen,
+    ColorTableView palette, std::string_view extra_data
+)
+{
+    std::vector<char> v;
+    json_rendering(title, screen, palette, RenderingBuffer::from_vector(v), extra_data);
+    return v;
+}
+
+std::vector<char> ansi_rendering(
+    ucs4_carray_view title, Screen const & screen,
+    ColorTableView palette, std::string_view extra_data
+)
+{
+    std::vector<char> v;
+    ansi_rendering(title, screen, palette, RenderingBuffer::from_vector(v), extra_data);
+    return v;
 }
 
 }

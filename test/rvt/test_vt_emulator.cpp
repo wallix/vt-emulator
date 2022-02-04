@@ -177,11 +177,11 @@ BOOST_AUTO_TEST_CASE(TestEmulatorReplay1)
         {},
         emulator.getCurrentScreen(),
         rvt::color_table,
-        nullptr
+        std::string_view()
     );
 
     BOOST_CHECK_EQUAL(s.size(), 4327u);
-    BOOST_CHECK_EQUAL(s, ""
+    BOOST_CHECK_EQUAL(std::string_view(s.data(), s.size()), ""
         "\033]\a│       ├── \033[0;4;38;2;95;135;215mcxx\n"
         "\033[0;38;2;238;238;238m│       │   ├── \033[0;38;2;95;215;255mattributes.hpp\n"
         "\033[0;38;2;238;238;238m│       │   ├── \033[0;38;2;95;215;255mdiagnostic.hpp\n"
