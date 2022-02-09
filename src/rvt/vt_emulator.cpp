@@ -1057,7 +1057,8 @@ static std::vector<char> hexdump2(ucs4_char const * s, int len)
 
     for (int i = 0; i < len; i++) {
         if (s[i] == '\\') {
-            append("\\\\"_av);
+            returnDump.push_back('\\');
+            returnDump.push_back('\\');
         }
         else if (s[i] > 32 && s[i] < 127) {
             returnDump.push_back(char(s[i]));

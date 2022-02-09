@@ -31,8 +31,8 @@ class Screen;
 
 struct RenderingBuffer
 {
-    using ExtraMemoryAllocator = char*(void* ctx, std::size_t extra_capacity, char* p, std::size_t used_size);
-    using SetFinalBuffer = void(void* ctx, char* p, std::size_t used_size);
+    using ExtraMemoryAllocator = uint8_t*(void* ctx, std::size_t extra_capacity, uint8_t* p, std::size_t used_size);
+    using SetFinalBuffer = void(void* ctx, uint8_t* p, std::size_t used_size);
 
     void* ctx;
     char* buffer;
@@ -41,6 +41,7 @@ struct RenderingBuffer
     SetFinalBuffer* set_final_buffer;
 
     static RenderingBuffer from_vector(std::vector<char>& v);
+    static RenderingBuffer from_vector(std::vector<uint8_t>& v);
 };
 
 void json_rendering(

@@ -22,41 +22,30 @@
 
 #include "cxx/cxx.hpp"
 
+#include <cstdint>
 #include <cstddef>
 
-
-namespace rvt_lib
+extern "C"
 {
-    class TerminalEmulator;
-    class TerminalEmulatorBuffer;
 
-    enum class OutputFormat : int {
-        json,
-        ansi
-    };
+class TerminalEmulator;
+class TerminalEmulatorBuffer;
 
-    enum class TranscriptPrefix : int {
-        noprefix,
-        datetime,
-    };
+enum class TerminalEmulatorOutputFormat : int {
+    json,
+    ansi
+};
 
-    enum class CreateFileMode : int {
-        fail_if_exists,
-        force_create,
-    };
-}
+enum class TerminalEmulatorTranscriptPrefix : int {
+    noprefix,
+    datetime,
+};
 
-using rvt_lib::TerminalEmulator;
-using rvt_lib::TerminalEmulatorBuffer;
-using rvt_lib::OutputFormat;
-using rvt_lib::TranscriptPrefix;
-using rvt_lib::CreateFileMode;
+enum class TerminalEmulatorCreateFileMode : int {
+    fail_if_exists,
+    force_create,
+};
 
-using BufferGetBufferFn = char*(void* ctx, std::size_t * output_len) noexcept;
-using BufferExtraMemoryAllocatorFn = char*(void* ctx, std::size_t extra_capacity, char* p, std::size_t used_size);
-using BufferSetFinalBufferFn = void(void* ctx, char* p, std::size_t used_size);
-using BufferClearFn = void(void* ctx) noexcept;
-using BufferDeleteCtxFn = void(void* ctx) noexcept;
 
 /// \return  0 if success, -2 if bad argument (emu is null, bad format, bad size, etc), -1 if internal error with `errno` code to 0 (bad alloc, etc) and > 0 is an `errno` code
 //@{
@@ -68,64 +57,76 @@ REDEMPTION_LIB_EXPORT
 TerminalEmulator * terminal_emulator_new(int lines, int columns) noexcept;
 
 REDEMPTION_LIB_EXPORT
-int terminal_emulator_delete(TerminalEmulator *) noexcept;
+int terminal_emulator_delete(TerminalEmulator * emu) noexcept;
 //END ctor/dtor
 
 //BEGIN log
-using LogFunction = void(*)(char const *, std::size_t len);
-using LogFunctionCtx = void(*)(void *, char const *, std::size_t len);
+// str is zero-terminated
+using TerminalEmulatorLogFunction = void(char const * str, std::size_t len);
+using TerminalEmulatorLogFunctionCtx = void(void *, char const * str, std::size_t len);
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_set_log_function(
-    TerminalEmulator *, LogFunction) noexcept;
+    TerminalEmulator * emu, TerminalEmulatorLogFunction * func) noexcept;
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_set_log_function_ctx(
-    TerminalEmulator *, LogFunctionCtx, void * ctx) noexcept;
+    TerminalEmulator * emu, TerminalEmulatorLogFunctionCtx * func, void * ctx) noexcept;
 //END log
 
 //BEGIN emulator
 REDEMPTION_LIB_EXPORT
-int terminal_emulator_set_title(TerminalEmulator *, char const * title) noexcept;
+int terminal_emulator_set_title(TerminalEmulator * emu, char const * title) noexcept;
 
 REDEMPTION_LIB_EXPORT
-int terminal_emulator_feed(TerminalEmulator *, char const * s, std::size_t len) noexcept;
+int terminal_emulator_feed(TerminalEmulator * emu, uint8_t const * s, std::size_t len) noexcept;
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_finish(TerminalEmulator *) noexcept;
 
 REDEMPTION_LIB_EXPORT
-int terminal_emulator_resize(TerminalEmulator *, int lines, int columns) noexcept;
+int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns) noexcept;
 //END emulator
 
 //BEGIN buffer
+using TerminalEmulatorBufferGetBufferFn
+  = uint8_t*(void* ctx, std::size_t * output_len) noexcept;
+using TerminalEmulatorBufferExtraMemoryAllocatorFn
+  = uint8_t*(void* ctx, std::size_t extra_capacity, uint8_t* p, std::size_t used_size);
+using TerminalEmulatorBufferSetFinalBufferFn
+  = void(void* ctx, uint8_t* p, std::size_t used_size);
+using TerminalEmulatorBufferClearFn = void(void* ctx) noexcept;
+using TerminalEmulatorBufferDeleteCtxFn = void(void* ctx) noexcept;
+
 REDEMPTION_LIB_EXPORT
 TerminalEmulatorBuffer * terminal_emulator_buffer_new() noexcept;
 
 REDEMPTION_LIB_EXPORT
 TerminalEmulatorBuffer * terminal_emulator_buffer_new_with_custom_allocator(
     void * ctx,
-    BufferGetBufferFn * get_buffer_fn,
-    BufferExtraMemoryAllocatorFn * extra_memory_allocator_fn,
-    BufferSetFinalBufferFn * set_final_buffer_fn,
-    BufferClearFn * clear_fn,
-    BufferDeleteCtxFn * delete_ctx_fn) noexcept;
+    TerminalEmulatorBufferGetBufferFn * get_buffer_fn,
+    TerminalEmulatorBufferExtraMemoryAllocatorFn * extra_memory_allocator_fn,
+    TerminalEmulatorBufferSetFinalBufferFn * set_final_buffer_fn,
+    TerminalEmulatorBufferClearFn * clear_fn,
+    TerminalEmulatorBufferDeleteCtxFn * delete_ctx_fn) noexcept;
 
 REDEMPTION_LIB_EXPORT
-int terminal_emulator_buffer_delete(TerminalEmulatorBuffer *) noexcept;
+int terminal_emulator_buffer_delete(TerminalEmulatorBuffer * buffer) noexcept;
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_prepare(
-    TerminalEmulatorBuffer *, TerminalEmulator *, OutputFormat) noexcept;
+    TerminalEmulatorBuffer * buffer, TerminalEmulator * emu,
+    TerminalEmulatorOutputFormat format) noexcept;
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_prepare2(
-    TerminalEmulatorBuffer *, TerminalEmulator *,
-    OutputFormat, char const * extra_data, std::size_t extra_data_len) noexcept;
+    TerminalEmulatorBuffer * buffer, TerminalEmulator * emu,
+    TerminalEmulatorOutputFormat format, uint8_t const * extra_data,
+    std::size_t extra_data_len) noexcept;
 
 REDEMPTION_LIB_EXPORT
-char const * terminal_emulator_buffer_get_data(
-    TerminalEmulatorBuffer const *, std::size_t * output_len) noexcept;
+uint8_t const * terminal_emulator_buffer_get_data(
+    TerminalEmulatorBuffer const * buffer, std::size_t * output_len) noexcept;
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_clear_data(TerminalEmulatorBuffer *) noexcept;
@@ -134,18 +135,23 @@ int terminal_emulator_buffer_clear_data(TerminalEmulatorBuffer *) noexcept;
 //BEGIN write
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_write(
-    TerminalEmulatorBuffer const *, char const * filename, int mode, CreateFileMode) noexcept;
+    TerminalEmulatorBuffer const * buffer, char const * filename,
+    int mode, TerminalEmulatorCreateFileMode create_mode) noexcept;
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_write_integrity(
-    TerminalEmulatorBuffer const *, char const * filename,
+    TerminalEmulatorBuffer const * buffer, char const * filename,
     char const * prefix_tmp_filename, int mode) noexcept;
 
 /// \brief Generate a transcript file of session recorded by ttyrec
 /// \param outfile  output file when not null, otherwise stdout
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_transcript_from_ttyrec(
-    char const * infile, char const * outfile, int mode, CreateFileMode, TranscriptPrefix) noexcept;
+    char const * infile, char const * outfile, int mode,
+    TerminalEmulatorCreateFileMode create_mode,
+    TerminalEmulatorTranscriptPrefix prefix_type) noexcept;
 //END write
 
 //@}
+
+}

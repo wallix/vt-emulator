@@ -92,8 +92,7 @@ struct Cli
 
 } // anonymous namespace
 
-using rvt_lib::TerminalEmulator;
-using rvt_lib::OutputFormat;
+using OutputFormat = TerminalEmulatorOutputFormat;
 
 struct TerminalEmulatorDeleter
 {
@@ -134,17 +133,19 @@ int main(int ac, char ** av)
     } while (0)
 
     constexpr std::size_t input_buf_len = 4096;
-    char input_buf[input_buf_len];
+    uint8_t input_buf[input_buf_len];
     ssize_t result;
     while ((result = read(0, input_buf, input_buf_len)) > 0)
     {
         PError(terminal_emulator_feed(emu, input_buf, std::size_t(result)));
-        PError(terminal_emulator_buffer_prepare(emu_buffer, emu, OutputFormat::json));
-        PError(terminal_emulator_buffer_write_integrity(emu_buffer, cli.filename, cli.filename, 0660));
+        PError(terminal_emulator_buffer_prepare(
+            emu_buffer, emu, TerminalEmulatorOutputFormat::json));
+        PError(terminal_emulator_buffer_write_integrity(
+            emu_buffer, cli.filename, cli.filename, 0660));
     }
 
     PError(terminal_emulator_finish(emu));
-    PError(terminal_emulator_buffer_prepare(emu_buffer, emu, OutputFormat::json));
+    PError(terminal_emulator_buffer_prepare(emu_buffer, emu, TerminalEmulatorOutputFormat::json));
     PError(terminal_emulator_buffer_write_integrity(emu_buffer, cli.filename, cli.filename, 0660));
 
     terminal_emulator_buffer_delete(emu_buffer);

@@ -38,58 +38,56 @@
 #include <sys/stat.h> // fchmod
 
 
-namespace rvt_lib
+extern "C"
 {
-    struct TerminalEmulator
-    {
-        rvt::VtEmulator emulator;
-        rvt::Utf8Decoder decoder;
 
-        TerminalEmulator(int lines, int columns)
-        : emulator(lines, columns)
-        {}
-    };
+struct TerminalEmulator
+{
+    rvt::VtEmulator emulator;
+    rvt::Utf8Decoder decoder;
 
-    struct TerminalEmulatorBuffer
-    {
-        void * ctx;
-        BufferGetBufferFn * get_buffer_fn;
-        BufferExtraMemoryAllocatorFn * extra_memory_allocator_fn;
-        BufferSetFinalBufferFn * set_final_buffer_fn;
-        BufferClearFn * clear_fn;
-        BufferDeleteCtxFn * delete_ctx_fn;
-        void(*delete_self)(TerminalEmulatorBuffer* self) noexcept;
-    };
+    TerminalEmulator(int lines, int columns)
+    : emulator(lines, columns)
+    {}
+};
 
-    struct TerminalEmulatorBufferWithVector : TerminalEmulatorBuffer
-    {
-        std::vector<char> v;
+struct TerminalEmulatorBuffer
+{
+    void * ctx;
+    TerminalEmulatorBufferGetBufferFn * get_buffer_fn;
+    TerminalEmulatorBufferExtraMemoryAllocatorFn * extra_memory_allocator_fn;
+    TerminalEmulatorBufferSetFinalBufferFn * set_final_buffer_fn;
+    TerminalEmulatorBufferClearFn * clear_fn;
+    TerminalEmulatorBufferDeleteCtxFn * delete_ctx_fn;
+    void(*delete_self)(TerminalEmulatorBuffer* self) noexcept;
+};
 
-        TerminalEmulatorBufferWithVector() noexcept(noexcept(std::vector<char>()))
-        : TerminalEmulatorBuffer{
-            &v,
-            [](void* ctx, std::size_t * output_len) noexcept {
-                auto* v = static_cast<std::vector<char>*>(ctx);
-                *output_len = v->size();
-                return v->data();
-            },
-            rvt::RenderingBuffer::from_vector(v).allocate,
-            rvt::RenderingBuffer::from_vector(v).set_final_buffer,
-            [](void* ctx) noexcept {
-                *static_cast<std::vector<char>*>(ctx) = std::vector<char>();
-            },
-            [](void* /*ctx*/) noexcept {},
-            [](TerminalEmulatorBuffer* self) noexcept {
-                delete static_cast<TerminalEmulatorBufferWithVector*>(self);
-            }
+struct TerminalEmulatorBufferWithVector : TerminalEmulatorBuffer
+{
+    std::vector<uint8_t> v;
+
+    TerminalEmulatorBufferWithVector() noexcept(noexcept(std::vector<uint8_t>()))
+    : TerminalEmulatorBuffer{
+        &v,
+        [](void* ctx, std::size_t * output_len) noexcept {
+            auto* v = static_cast<std::vector<uint8_t>*>(ctx);
+            *output_len = v->size();
+            return v->data();
+        },
+        rvt::RenderingBuffer::from_vector(v).allocate,
+        rvt::RenderingBuffer::from_vector(v).set_final_buffer,
+        [](void* ctx) noexcept {
+            *static_cast<std::vector<uint8_t>*>(ctx) = std::vector<uint8_t>();
+        },
+        [](void* /*ctx*/) noexcept {},
+        [](TerminalEmulatorBuffer* self) noexcept {
+            delete static_cast<TerminalEmulatorBufferWithVector*>(self);
         }
-        {}
-    };
-}
+    }
+    {}
+};
 
-using rvt_lib::TerminalEmulator;
-using rvt_lib::OutputFormat;
-
+} // extern "C"
 
 static bool write_all(int fd, const void * data, size_t len) noexcept
 {
@@ -112,31 +110,31 @@ static bool write_all(int fd, const void * data, size_t len) noexcept
 static bool write_all(int fd, TerminalEmulatorBuffer const * buffer) noexcept
 {
     std::size_t len = 0;
-    char* data = buffer->get_buffer_fn(buffer->ctx, &len);
+    uint8_t* data = buffer->get_buffer_fn(buffer->ctx, &len);
     return write_all(fd, data, len);
 }
 
 static int build_format_string(
     TerminalEmulatorBuffer & buffer, TerminalEmulator & emu,
-    OutputFormat format, std::string_view extra_data
+    TerminalEmulatorOutputFormat format, std::string_view extra_data
 ) noexcept
 {
     std::size_t len = 0;
-    char* data = buffer.get_buffer_fn(buffer.ctx, &len);
+    uint8_t* data = buffer.get_buffer_fn(buffer.ctx, &len);
     rvt::RenderingBuffer rendering_buffer {
         buffer.ctx,
-        data, len,
+        bytes_t(data).to_charp(), len,
         buffer.extra_memory_allocator_fn,
         buffer.set_final_buffer_fn
     };
     try {
-        #define call_rendering(Format)               \
-            case OutputFormat::Format:               \
-                rvt::Format##_rendering(             \
-                    emu.emulator.getWindowTitle(),   \
-                    emu.emulator.getCurrentScreen(), \
-                    rvt::xterm_color_table,          \
-                    rendering_buffer, extra_data     \
+        #define call_rendering(Format)                 \
+            case TerminalEmulatorOutputFormat::Format: \
+                rvt::Format##_rendering(               \
+                    emu.emulator.getWindowTitle(),     \
+                    emu.emulator.getCurrentScreen(),   \
+                    rvt::xterm_color_table,            \
+                    rendering_buffer, extra_data       \
                 ); return 0
         switch (format) {
             call_rendering(json);
@@ -150,6 +148,8 @@ static int build_format_string(
     }
 }
 
+extern "C"
+{
 
 REDEMPTION_LIB_EXPORT
 char const * terminal_emulator_version() noexcept
@@ -214,7 +214,7 @@ int terminal_emulator_set_title(TerminalEmulator * emu, char const * title) noex
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_set_log_function(
-    TerminalEmulator * emu, LogFunction log_func
+    TerminalEmulator * emu, TerminalEmulatorLogFunction * log_func
 ) noexcept
 {
     return_if(!emu);
@@ -225,7 +225,7 @@ int terminal_emulator_set_log_function(
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_set_log_function_ctx(
-    TerminalEmulator * emu, LogFunctionCtx log_func, void * ctx
+    TerminalEmulator * emu, TerminalEmulatorLogFunctionCtx * log_func, void * ctx
 ) noexcept
 {
     return_if(!emu);
@@ -237,7 +237,7 @@ int terminal_emulator_set_log_function_ctx(
 }
 
 REDEMPTION_LIB_EXPORT
-int terminal_emulator_feed(TerminalEmulator * emu, char const * s, std::size_t len) noexcept
+int terminal_emulator_feed(TerminalEmulator * emu, uint8_t const * s, std::size_t len) noexcept
 {
     return_if(!emu);
 
@@ -265,18 +265,18 @@ int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns) noe
 REDEMPTION_LIB_EXPORT
 TerminalEmulatorBuffer* terminal_emulator_buffer_new() noexcept
 {
-    static_assert(noexcept(rvt_lib::TerminalEmulatorBufferWithVector()));
-    return new(std::nothrow) rvt_lib::TerminalEmulatorBufferWithVector{};
+    static_assert(noexcept(TerminalEmulatorBufferWithVector()));
+    return new(std::nothrow) TerminalEmulatorBufferWithVector{};
 }
 
 REDEMPTION_LIB_EXPORT
 TerminalEmulatorBuffer * terminal_emulator_buffer_new_with_custom_allocator(
     void * ctx,
-    BufferGetBufferFn * get_buffer_fn,
-    BufferExtraMemoryAllocatorFn * extra_memory_allocator_fn,
-    BufferSetFinalBufferFn * set_final_buffer_fn,
-    BufferClearFn * clear_fn,
-    BufferDeleteCtxFn * delete_ctx_fn) noexcept
+    TerminalEmulatorBufferGetBufferFn * get_buffer_fn,
+    TerminalEmulatorBufferExtraMemoryAllocatorFn * extra_memory_allocator_fn,
+    TerminalEmulatorBufferSetFinalBufferFn * set_final_buffer_fn,
+    TerminalEmulatorBufferClearFn * clear_fn,
+    TerminalEmulatorBufferDeleteCtxFn * delete_ctx_fn) noexcept
 {
     return new(std::nothrow) TerminalEmulatorBuffer{
         ctx,
@@ -300,7 +300,8 @@ int terminal_emulator_buffer_delete(TerminalEmulatorBuffer * buffer) noexcept
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_prepare(
-    TerminalEmulatorBuffer * buffer, TerminalEmulator * emu, OutputFormat format
+    TerminalEmulatorBuffer * buffer, TerminalEmulator * emu,
+    TerminalEmulatorOutputFormat format
 ) noexcept
 {
     return_if(!buffer || !emu);
@@ -310,17 +311,19 @@ int terminal_emulator_buffer_prepare(
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_prepare2(
-    TerminalEmulatorBuffer * buffer, TerminalEmulator * emu, OutputFormat format,
-    char const * extra_data, std::size_t extra_data_len
+    TerminalEmulatorBuffer * buffer, TerminalEmulator * emu,
+    TerminalEmulatorOutputFormat format,
+    uint8_t const * extra_data, std::size_t extra_data_len
 ) noexcept
 {
     return_if(!buffer || !emu);
 
-    return build_format_string(*buffer, *emu, format, {extra_data, extra_data_len});
+    std::string_view extra = {const_bytes_t(extra_data).to_charp(), extra_data_len};
+    return build_format_string(*buffer, *emu, format, extra);
 }
 
 REDEMPTION_LIB_EXPORT
-char const * terminal_emulator_buffer_get_data(
+uint8_t const * terminal_emulator_buffer_get_data(
     TerminalEmulatorBuffer const * buffer, std::size_t * output_len) noexcept
 {
     if (REDEMPTION_UNLIKELY(!buffer)) {
@@ -345,12 +348,12 @@ int terminal_emulator_buffer_clear_data(TerminalEmulatorBuffer * buffer) noexcep
 
 namespace
 {
-    int create_file_mode(CreateFileMode create_mode) noexcept
+    int create_file_mode(TerminalEmulatorCreateFileMode create_mode) noexcept
     {
         switch (create_mode)
         {
-            case CreateFileMode::force_create: return O_TRUNC | O_CREAT;
-            case CreateFileMode::fail_if_exists: return O_EXCL | O_CREAT;
+            case TerminalEmulatorCreateFileMode::force_create: return O_TRUNC | O_CREAT;
+            case TerminalEmulatorCreateFileMode::fail_if_exists: return O_EXCL | O_CREAT;
         }
         return 0;
     }
@@ -358,7 +361,8 @@ namespace
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_write(
-    TerminalEmulatorBuffer const * buffer, char const * filename, int mode, CreateFileMode create_mode
+    TerminalEmulatorBuffer const * buffer, char const * filename, int mode,
+    TerminalEmulatorCreateFileMode create_mode
 ) noexcept
 {
     return_if(!buffer || !filename);
@@ -380,7 +384,8 @@ int terminal_emulator_buffer_write(
 
 REDEMPTION_LIB_EXPORT
 int terminal_emulator_buffer_write_integrity(
-    TerminalEmulatorBuffer const * buffer, char const * filename, char const * prefix_tmp_filename, int mode
+    TerminalEmulatorBuffer const * buffer, char const * filename,
+    char const * prefix_tmp_filename, int mode
 ) noexcept
 {
     return_if(!buffer || !filename);
@@ -413,7 +418,8 @@ int terminal_emulator_buffer_write_integrity(
 
 REDEMPTION_LIB_EXPORT int terminal_emulator_transcript_from_ttyrec(
     char const * infile, char const * outfile, int mode,
-    CreateFileMode create_mode, TranscriptPrefix prefix
+    TerminalEmulatorCreateFileMode create_mode,
+    TerminalEmulatorTranscriptPrefix prefix
 ) noexcept
 {
     struct Fd
@@ -610,7 +616,7 @@ REDEMPTION_LIB_EXPORT int terminal_emulator_transcript_from_ttyrec(
 
     try {
         rvt::VtEmulator emu(20, 80,
-            (prefix == TranscriptPrefix::datetime)
+            (prefix == TerminalEmulatorTranscriptPrefix::datetime)
             ? rvt::Screen::LineSaver(line_saver_with_datetime)
             : rvt::Screen::LineSaver(line_saver));
         rvt::Utf8Decoder decoder;
@@ -653,3 +659,5 @@ REDEMPTION_LIB_EXPORT int terminal_emulator_transcript_from_ttyrec(
 
     return out.err ? out.err : 0;
 }
+
+} // extern "C"

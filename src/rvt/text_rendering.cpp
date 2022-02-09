@@ -72,14 +72,20 @@ struct RenderingBuffer2
         }
     }
 
+    uint8_t* start_buffer() const
+    {
+        return bytes_t(_start_p).to_u8p();
+    }
+
     void set_final()
     {
-        _set_final_buffer(_ctx, _start_p, buffer_length());
+        _set_final_buffer(_ctx, start_buffer(), buffer_length());
     }
 
     void allocate(std::size_t extra_capacity)
     {
-        _p = _allocate(_ctx, extra_capacity, _start_p, buffer_length());
+        auto* p = _allocate(_ctx, extra_capacity, start_buffer(), buffer_length());
+        _p = bytes_t(p).to_charp();
         _start_p = _p;
         _end_p = _p + extra_capacity;
     }
@@ -459,23 +465,38 @@ void ansi_rendering(
     buf.set_final();
 }
 
-
-RenderingBuffer RenderingBuffer::from_vector(std::vector<char>& v)
+namespace
 {
-    auto allocate = [](void* ctx, std::size_t extra_capacity, char* p, std::size_t used_size){
-        auto v = static_cast<std::vector<char>*>(ctx);
-        std::size_t current_len = static_cast<std::size_t>(p - v->data()) + used_size;
+
+template<class T>
+RenderingBuffer vector_to_rendering_buffer(std::vector<T>& v)
+{
+    auto allocate = [](void* ctx, std::size_t extra_capacity, uint8_t* p, std::size_t used_size) {
+        auto v = static_cast<std::vector<T>*>(ctx);
+        std::size_t current_len = static_cast<std::size_t>(p - bytes_t(v->data()).to_u8p()) + used_size;
         v->resize(current_len + extra_capacity);
-        return v->data() + current_len;
+        return bytes_t(v->data()).to_u8p() + current_len;
     };
 
-    auto set_final = [](void* ctx, char* p, std::size_t used_size) {
-        auto v = static_cast<std::vector<char>*>(ctx);
-        std::size_t current_len = static_cast<std::size_t>(p - v->data()) + used_size;
+    auto set_final = [](void* ctx, uint8_t* p, std::size_t used_size) {
+        auto v = static_cast<std::vector<T>*>(ctx);
+        std::size_t current_len = static_cast<std::size_t>(p - bytes_t(v->data()).to_u8p()) + used_size;
         v->resize(current_len);
     };
 
-    return RenderingBuffer{&v, v.data(), v.size(), allocate, set_final};
+    return RenderingBuffer{&v, bytes_t(v.data()).to_charp(), v.size(), allocate, set_final};
+}
+
+}
+
+RenderingBuffer RenderingBuffer::from_vector(std::vector<char>& v)
+{
+    return vector_to_rendering_buffer(v);
+}
+
+RenderingBuffer RenderingBuffer::from_vector(std::vector<uint8_t>& v)
+{
+    return vector_to_rendering_buffer(v);
 }
 
 std::vector<char> json_rendering(

@@ -22,6 +22,7 @@
 #include "system/redemption_unit_tests.hpp"
 
 #include "rvt_lib/terminal_emulator.hpp"
+#include "utils/sugar/bytes_t.hpp"
 
 #include <memory>
 #include <iostream>
@@ -55,8 +56,9 @@ inline std::string get_file_contents(const char * name)
 }
 
 
-using rvt_lib::TerminalEmulator;
-using rvt_lib::OutputFormat;
+using OutputFormat = TerminalEmulatorOutputFormat;
+using CreateFileMode = TerminalEmulatorCreateFileMode;
+using TranscriptPrefix = TerminalEmulatorTranscriptPrefix;
 
 constexpr auto force_create = CreateFileMode::force_create;
 
@@ -75,11 +77,16 @@ struct std::default_delete<TerminalEmulatorBuffer>
     { BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_delete(p)); }
 };
 
+static uint8_t const* to_u8p(char const* p) noexcept
+{
+    return const_bytes_t(p).to_u8p();
+}
+
 static std::string_view get_data(TerminalEmulatorBuffer * buf)
 {
     std::size_t len = 0;
-    char const* data = terminal_emulator_buffer_get_data(buf, &len);
-    return {data, len};
+    uint8_t const* data = terminal_emulator_buffer_get_data(buf, &len);
+    return {const_bytes_t(data).to_charp(), len};
 }
 
 static int global_i = 1;
@@ -95,16 +102,16 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK(emubuf);
     BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function(emu, [](char const *, std::size_t) { global_i = 2; }));
     BOOST_CHECK_EQUAL(global_i, 1);
-    BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[324a", 6));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, to_u8p("\033[324a"), 6));
     BOOST_CHECK_EQUAL(global_i, 2);
     int ctx_i = 1;
     BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function_ctx(emu, [](void * ctx, char const *, std::size_t) { *static_cast<int*>(ctx) = 3; }, &ctx_i));
     BOOST_CHECK_EQUAL(ctx_i, 1);
-    BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[324a", 6));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, to_u8p("\033[324a"), 6));
     BOOST_CHECK_EQUAL(ctx_i, 3);
 
     BOOST_CHECK_EQUAL(0, terminal_emulator_set_title(emu, "Lib test"));
-    BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "ABC", 3));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, to_u8p("ABC"), 3));
 
     char const * filename = "/tmp/termemu-test.json";
 
@@ -137,13 +144,13 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
 
     contents = R"xxx({"x":1,"y":0,"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]],"extra":"plop"})xxx";
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare2(emubuf, emu, OutputFormat::json, "\"plop\"", 6));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare2(emubuf, emu, OutputFormat::json, to_u8p("\"plop\""), 6));
     BOOST_CHECK_EQUAL(contents.size(), get_data(emubuf).size());
     BOOST_CHECK_EQUAL(contents, get_data(emubuf));
 
     contents = R"xxx({"y":-1,"lines":2,"columns":2,"title":"Lib test","style":{"r":0,"f":16777215,"b":0},"data":[[[{"s":"AB"}]],[[{}]]]})xxx";
 
-    BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, "\033[?25l", 6));
+    BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, to_u8p("\033[?25l"), 6));
     BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare(emubuf, emu, OutputFormat::json));
     BOOST_CHECK_EQUAL(contents.size(), get_data(emubuf).size());
     BOOST_CHECK_EQUAL(contents, get_data(emubuf));
@@ -153,7 +160,7 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function_ctx(nullptr, [](void *, char const *, std::size_t) {}, nullptr));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_set_log_function(nullptr, [](char const *, std::size_t) {}));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_set_title(nullptr, "Lib test"));
-    BOOST_CHECK_EQUAL(-2, terminal_emulator_feed(nullptr, "\033[324a", 6));
+    BOOST_CHECK_EQUAL(-2, terminal_emulator_feed(nullptr, to_u8p("\033[324a"), 6));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_write(nullptr, filename, 0664, force_create));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_write_integrity(nullptr, filename, filename, 0664));
     BOOST_CHECK_EQUAL(-2, terminal_emulator_buffer_prepare(nullptr, emu, OutputFormat::json));
