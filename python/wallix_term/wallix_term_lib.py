@@ -1,21 +1,46 @@
-# ./tools/cpp2ctypes/cpp2ctypes.lua 'src/rvt_lib/terminal_emulator.hpp' '-l' 'wallix_term.so'
+# ./tools/cpp2ctypes/cpp2ctypes.lua 'src/rvt_lib/terminal_emulator.hpp' '-l' 'libwallix_term.so'
 
 from ctypes import CDLL, CFUNCTYPE, POINTER, c_char_p, c_int, c_size_t, c_void_p
+from enum import IntEnum
 
-lib = CDLL("wallix_term.so")
+lib = CDLL("libwallix_term.so")
 
 # enum class TerminalEmulatorOutputFormat : int {
 #    json,
 #    ansi
 # }
+class TerminalEmulatorOutputFormat(IntEnum):
+    json = 0
+    ansi = 1
+
+    def from_param(self) -> int:
+        return int(self)
+
+
 # enum class TerminalEmulatorTranscriptPrefix : int {
 #    noprefix,
 #    datetime,
 # }
+class TerminalEmulatorTranscriptPrefix(IntEnum):
+    noprefix = 0
+    datetime = 1
+
+    def from_param(self) -> int:
+        return int(self)
+
+
 # enum class TerminalEmulatorCreateFileMode : int {
 #    fail_if_exists,
 #    force_create,
 # }
+class TerminalEmulatorCreateFileMode(IntEnum):
+    fail_if_exists = 0
+    force_create = 1
+
+    def from_param(self) -> int:
+        return int(self)
+
+
 # \return  0 if success, -2 if bad argument (emu is null, bad format, bad size, etc), -1 if internal error with `errno` code to 0 (bad alloc, etc) and > 0 is an `errno` code
 # @{
 # char const * terminal_emulator_version() noexcept;

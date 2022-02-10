@@ -132,3 +132,15 @@ test-canonical rvt/vt_emulator.hpp : <library>libemu <library>text_rendering ;
 
 test-canonical rvt_lib/terminal_emulator.hpp : <library>libterm ;
 ## }
+
+## Python tests
+## @{
+make python_tests : libterm python/run_tests.sh [ glob "python/wallix_term/*.py" "python/tests/*.py" ] : @test_python ;
+
+actions test_python
+{
+    path=`realpath "$(>[0]:P)"`
+    echo "python/run_tests.sh '$path'"
+    python/run_tests.sh "$path" && :>"$(<)"
+}
+## @}
