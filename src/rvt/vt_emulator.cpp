@@ -1047,7 +1047,7 @@ bool VtEmulator::getMode(ScreenMode m)
 static std::vector<char> hexdump2(ucs4_char const * s, int len)
 {
     std::vector<char> returnDump;
-    returnDump.reserve(std::size_t(len) + 1);
+    returnDump.reserve(std::size_t(len) * 2 + 1);
 
     auto append = [&](chars_view s){
         returnDump.insert(returnDump.end(), s.begin(), s.end());
@@ -1055,20 +1055,31 @@ static std::vector<char> hexdump2(ucs4_char const * s, int len)
 
     append("Undecodable sequence: "_av);
 
+    char const* digits = "0123456789abcdef";
+
     for (int i = 0; i < len; i++) {
-        if (s[i] == '\\') {
+        if (REDEMPTION_UNLIKELY(s[i] == '\\')) {
             returnDump.push_back('\\');
             returnDump.push_back('\\');
         }
-        else if (s[i] > 32 && s[i] < 127) {
+        else if (REDEMPTION_LIKELY(s[i] > 32 && s[i] < 127)) {
             returnDump.push_back(char(s[i]));
         }
+        else if (s[i] <= 32) {
+            char hex[4]{'\\', 'x', digits[s[i]>>4], digits[s[i] & 0xf]};
+            append(make_const_array_view(hex));
+        }
         else {
-            char hex[8];
-            char const* digits = "0123456789abcdef";
-            for (unsigned i = 0; i < 8; ++i) {
-                hex[i] = digits[(s[i] >> (28-i*4)) & 0xf];
-            }
+            char hex[]{'\\', 'u',
+                digits[(s[i] >> 28) & 0xf],
+                digits[(s[i] >> 24) & 0xf],
+                digits[(s[i] >> 20) & 0xf],
+                digits[(s[i] >> 16) & 0xf],
+                digits[(s[i] >> 12) & 0xf],
+                digits[(s[i] >> 8 ) & 0xf],
+                digits[(s[i] >> 4 ) & 0xf],
+                digits[(s[i] >> 0 ) & 0xf]
+            };
             append(make_const_array_view(hex));
         }
     }

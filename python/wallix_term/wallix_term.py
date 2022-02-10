@@ -2,10 +2,10 @@
 
 from .wallix_term_lib import lib
 from collections import namedtuple
-from ctypes import byref, c_size_t, c_char, c_void_p, Array
+from ctypes import byref, cast, c_size_t, c_char, c_void_p, Array, addressof
 from enum import Enum
 from os import fsencode, strerror, PathLike
-from typing import Callback, Any, Optional, Union
+from typing import Callable, Any, Optional, Union, Tuple
 
 
 PathLikeObject = Union[str, bytes, PathLike]
@@ -39,7 +39,7 @@ class TerminalEmulatorException(Exception):
 
 def _check_errnum(errnum) -> None:
     if errnum == 0:
-        pass
+        return
 
     if errnum == -2:
         raise TerminalEmulatorException("bad argument(s)")
@@ -74,15 +74,15 @@ class TerminalEmulator:
     def __del__(self) -> None:
         lib.terminal_emulator_delete(self._ctx)
 
-    def set_log_function(self, func:Callback[[Array], None]) -> None:
+    def set_log_function(self, func:Callable[[str], None]) -> None:
+        log_func = lambda p,n: func(p.decode())
         _check_errnum(lib.terminal_emulator_set_log_function(
-            self._ctx, lambda p,n: func((c_char * n).from_address(p))))
-
-    def set_log_raw_function(self, func:Callback[[bytes, int], None]) -> None:
-        _check_errnum(lib.terminal_emulator_set_log_function(self._ctx, func))
+            self._ctx, lib.TerminalEmulatorLogFunction(log_func)))
+        # extend lifetime
+        self._log_func = log_func
 
     def set_title(self, title:str) -> None:
-        _check_errnum(lib.terminal_emulator_set_title(self._ctx, title))
+        _check_errnum(lib.terminal_emulator_set_title(self._ctx, title.encode()))
 
     def feed(self, s:bytes) -> None:
         _check_errnum(lib.terminal_emulator_feed(self._ctx, s, len(s)))
@@ -105,16 +105,23 @@ class TerminalEmulatorBuffer:
     def prepare(self, emu:TerminalEmulator, format:OutputFormat, extra_data:Optional[bytes]=None) -> None:
         if extra_data:
             _check_errnum(lib.terminal_emulator_buffer_prepare2(
-                self._ctx, emu, format, extra_data, len(extra_data)))
+                self._ctx, emu._ctx, int(format), extra_data, len(extra_data)))
         else:
-            _check_errnum(lib.terminal_emulator_buffer_prepare(self._ctx, emu, format))
+            _check_errnum(lib.terminal_emulator_buffer_prepare(self._ctx, emu._ctx, int(format)))
 
-    def get_data(self) -> Array:
+    def get_data(self) -> bytes:
+        p, n = self.get_raw_data()
+        return (c_char * n).from_address(p)
+
+    def get_raw_data(self) -> Tuple[int, int]:
+        """
+        Return address and size
+        """
         n = c_size_t()
         p = lib.terminal_emulator_buffer_get_data(self._ctx, byref(n))
         if not p:
             raise TerminalEmulatorException('invalid buffer')
-        return (c_char * n).from_address(p)
+        return (addressof(p.contents), n.value)
 
     def write(self, filename:PathLikeObject,
               mode:int=0o664,

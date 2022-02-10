@@ -1,6 +1,6 @@
 # ./tools/cpp2ctypes/cpp2ctypes.lua 'src/rvt_lib/terminal_emulator.hpp' '-l' 'libwallix_term.so'
 
-from ctypes import CDLL, CFUNCTYPE, POINTER, c_char_p, c_int, c_size_t, c_void_p
+from ctypes import CDLL, CFUNCTYPE, POINTER, c_char, c_char_p, c_int, c_size_t, c_void_p
 from enum import IntEnum
 
 lib = CDLL("libwallix_term.so")
@@ -16,6 +16,8 @@ class TerminalEmulatorOutputFormat(IntEnum):
     def from_param(self) -> int:
         return int(self)
 
+lib.TerminalEmulatorOutputFormat = TerminalEmulatorOutputFormat
+
 
 # enum class TerminalEmulatorTranscriptPrefix : int {
 #    noprefix,
@@ -28,6 +30,8 @@ class TerminalEmulatorTranscriptPrefix(IntEnum):
     def from_param(self) -> int:
         return int(self)
 
+lib.TerminalEmulatorTranscriptPrefix = TerminalEmulatorTranscriptPrefix
+
 
 # enum class TerminalEmulatorCreateFileMode : int {
 #    fail_if_exists,
@@ -39,6 +43,8 @@ class TerminalEmulatorCreateFileMode(IntEnum):
 
     def from_param(self) -> int:
         return int(self)
+
+lib.TerminalEmulatorCreateFileMode = TerminalEmulatorCreateFileMode
 
 
 # \return  0 if success, -2 if bad argument (emu is null, bad format, bad size, etc), -1 if internal error with `errno` code to 0 (bad alloc, etc) and > 0 is an `errno` code
@@ -60,8 +66,10 @@ lib.terminal_emulator_delete.restype = c_int
 # BEGIN log
 # str is zero-terminated
 TerminalEmulatorLogFunction = CFUNCTYPE(None, c_char_p, c_size_t)
+lib.TerminalEmulatorLogFunction = TerminalEmulatorLogFunction
 
 TerminalEmulatorLogFunctionCtx = CFUNCTYPE(None, c_void_p, c_char_p, c_size_t)
+lib.TerminalEmulatorLogFunctionCtx = TerminalEmulatorLogFunctionCtx
 
 # int terminal_emulator_set_log_function(
 #     TerminalEmulator * emu, TerminalEmulatorLogFunction * func) noexcept;
@@ -91,14 +99,19 @@ lib.terminal_emulator_resize.restype = c_int
 # END emulator
 # BEGIN buffer
 TerminalEmulatorBufferGetBufferFn = CFUNCTYPE(POINTER(c_char), c_void_p, POINTER(c_size_t))
+lib.TerminalEmulatorBufferGetBufferFn = TerminalEmulatorBufferGetBufferFn
 
 TerminalEmulatorBufferExtraMemoryAllocatorFn = CFUNCTYPE(POINTER(c_char), c_void_p, c_size_t, POINTER(c_char), c_size_t)
+lib.TerminalEmulatorBufferExtraMemoryAllocatorFn = TerminalEmulatorBufferExtraMemoryAllocatorFn
 
 TerminalEmulatorBufferSetFinalBufferFn = CFUNCTYPE(None, c_void_p, POINTER(c_char), c_size_t)
+lib.TerminalEmulatorBufferSetFinalBufferFn = TerminalEmulatorBufferSetFinalBufferFn
 
 TerminalEmulatorBufferClearFn = CFUNCTYPE(None, c_void_p)
+lib.TerminalEmulatorBufferClearFn = TerminalEmulatorBufferClearFn
 
 TerminalEmulatorBufferDeleteCtxFn = CFUNCTYPE(None, c_void_p)
+lib.TerminalEmulatorBufferDeleteCtxFn = TerminalEmulatorBufferDeleteCtxFn
 
 # TerminalEmulatorBuffer * terminal_emulator_buffer_new() noexcept;
 lib.terminal_emulator_buffer_new.argtypes = []

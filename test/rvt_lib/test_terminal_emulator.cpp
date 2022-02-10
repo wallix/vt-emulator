@@ -89,8 +89,6 @@ static std::string_view get_data(TerminalEmulatorBuffer * buf)
     return {const_bytes_t(data).to_charp(), len};
 }
 
-static int global_i = 1;
-
 BOOST_AUTO_TEST_CASE(TestTermEmu)
 {
     std::unique_ptr<TerminalEmulator> uemu{terminal_emulator_new(3, 10)};
@@ -98,12 +96,14 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     auto emu = uemu.get();
     auto emubuf = uemubuf.get();
 
+    static std::string global_s;
+
     BOOST_CHECK(emu);
     BOOST_CHECK(emubuf);
-    BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function(emu, [](char const *, std::size_t) { global_i = 2; }));
-    BOOST_CHECK_EQUAL(global_i, 1);
+    BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function(emu, [](char const * s, std::size_t n) { global_s.assign(s, n); }));
+    BOOST_CHECK_EQUAL(global_s, "");
     BOOST_CHECK_EQUAL(0, terminal_emulator_feed(emu, to_u8p("\033[324a"), 6));
-    BOOST_CHECK_EQUAL(global_i, 2);
+    BOOST_CHECK_EQUAL(global_s, "Undecodable sequence: \\x1b[324a");
     int ctx_i = 1;
     BOOST_CHECK_EQUAL(0, terminal_emulator_set_log_function_ctx(emu, [](void * ctx, char const *, std::size_t) { *static_cast<int*>(ctx) = 3; }, &ctx_i));
     BOOST_CHECK_EQUAL(ctx_i, 1);
