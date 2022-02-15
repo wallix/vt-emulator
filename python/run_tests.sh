@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 if [[ -n $1 ]]; then
   export LD_LIBRARY_PATH="$1"
 fi
