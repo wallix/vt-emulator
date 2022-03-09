@@ -53,17 +53,8 @@ def _check_errnum(errnum: int) -> None:
 class TerminalEmulator:
     __slot__ = ('_ctx')
 
-    def __init__(self, lines: int, columns: int, title: Optional[str] = None, allocator: Allocator = None) -> None:
-        if allocator:
-            self._ctx = lib.terminal_emulator_buffer_new_with_custom_allocator(
-                allocator.ctx,
-                allocator.get_buffer_fn,
-                allocator.extra_memory_allocator_fn,
-                allocator.set_final_buffer_fn,
-                allocator.clear_fn,
-                allocator.delete_ctx_fn)
-        else:
-            self._ctx = lib.terminal_emulator_new(lines, columns)
+    def __init__(self, lines: int, columns: int, title: Optional[str] = None) -> None:
+        self._ctx = lib.terminal_emulator_new(lines, columns)
 
         if title:
             self.set_title(title)
@@ -94,8 +85,18 @@ class TerminalEmulator:
 class TerminalEmulatorBuffer:
     __slot__ = ('_ctx')
 
-    def __init__(self) -> None:
-        self._ctx = lib.terminal_emulator_buffer_new()
+    def __init__(self, allocator: Allocator = None) -> None:
+        if allocator:
+            self._ctx = lib.terminal_emulator_buffer_new_with_custom_allocator(
+                allocator.ctx,
+                allocator.get_buffer_fn,
+                allocator.extra_memory_allocator_fn,
+                allocator.set_final_buffer_fn,
+                allocator.clear_fn,
+                allocator.delete_ctx_fn)
+        else:
+            self._ctx = lib.terminal_emulator_buffer_new()
+
         if not self._ctx:
             raise Exception("malloc error")
 

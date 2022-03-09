@@ -98,10 +98,10 @@ lib.terminal_emulator_resize.restype = c_int
 
 # END emulator
 # BEGIN buffer
-TerminalEmulatorBufferGetBufferFn = CFUNCTYPE(POINTER(c_char), c_void_p, POINTER(c_size_t))
+TerminalEmulatorBufferGetBufferFn = CFUNCTYPE(c_void_p, c_void_p, POINTER(c_size_t))
 lib.TerminalEmulatorBufferGetBufferFn = TerminalEmulatorBufferGetBufferFn
 
-TerminalEmulatorBufferExtraMemoryAllocatorFn = CFUNCTYPE(POINTER(c_char), c_void_p, c_size_t, POINTER(c_char), c_size_t)
+TerminalEmulatorBufferExtraMemoryAllocatorFn = CFUNCTYPE(c_void_p, c_void_p, c_size_t, POINTER(c_char), c_size_t)
 lib.TerminalEmulatorBufferExtraMemoryAllocatorFn = TerminalEmulatorBufferExtraMemoryAllocatorFn
 
 TerminalEmulatorBufferSetFinalBufferFn = CFUNCTYPE(None, c_void_p, POINTER(c_char), c_size_t)
