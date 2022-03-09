@@ -83,9 +83,11 @@ class TerminalEmulator:
 
 
 class TerminalEmulatorBuffer:
-    __slot__ = ('_ctx')
+    __slot__ = ('_ctx', '_allocator')
 
     def __init__(self, allocator: Allocator = None) -> None:
+        self._allocator = allocator
+
         if allocator:
             self._ctx = lib.terminal_emulator_buffer_new_with_custom_allocator(
                 allocator.ctx,
