@@ -29,9 +29,7 @@ constexpr std::size_t charset_map_size = 256;
 using charset_map_type = std::array<ucs4_char, charset_map_size>;
 
 template<class... T>
-constexpr
-charset_map_type
-make_charset(T ... ucs)
+constexpr charset_map_type make_charset(T ... ucs)
 {
     static_assert(sizeof...(ucs) == charset_map_size, "");
     return {{ucs4_char(ucs)...}};

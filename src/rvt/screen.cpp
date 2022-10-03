@@ -43,11 +43,13 @@ const bool BS_CLEARS = false;
 //notably moveImage() and clearImage().
 //This macro converts from an X,Y position into an image offset.
 
-const Character Screen::DefaultChar = Character(' ',
-                                      CharacterColor(ColorSpace::Default, DEFAULT_FORE_COLOR),
-                                      CharacterColor(ColorSpace::Default, DEFAULT_BACK_COLOR),
-                                      Rendition::Default,
-                                      false);
+const Character Screen::DefaultChar = Character(
+    ' ',
+    CharacterColor(ColorSpace::Default, DEFAULT_FORE_COLOR),
+    CharacterColor(ColorSpace::Default, DEFAULT_BACK_COLOR),
+    Rendition::Default,
+    false
+);
 
 #define loc(x, y) ((y) * _columns + (x))
 

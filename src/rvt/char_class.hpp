@@ -38,10 +38,9 @@ namespace {
     constexpr int CPS = 64;  // Character which indicates end of window resize
 }
 
-    // C++14 version (does not working with gcc-4.9)
     struct CharClass
     {
-        /*constexpr*/ CharClass() noexcept
+        constexpr CharClass() noexcept
         : charClass_{}
         {
             using u8 = unsigned char;
@@ -63,7 +62,7 @@ namespace {
                 charClass_[u8(*s)] |= GRP;
         }
 
-        /*constexpr*/ char operator[](ucs4_char cc) const noexcept
+        constexpr char operator[](ucs4_char cc) const noexcept
         {
             return charClass_[cc];
         }
