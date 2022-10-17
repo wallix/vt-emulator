@@ -56,6 +56,18 @@ void ansi_rendering(
     std::string_view extra_data = {}
 );
 
+struct TranscriptPartialBuffer
+{
+    char* buffer;
+    std::size_t length;
+    std::size_t capacity;
+};
+
+TranscriptPartialBuffer transcript_partial_rendering(
+    Screen const & screen, size_t y, size_t yend,
+    RenderingBuffer buffer, std::size_t consumed_buffer
+);
+
 std::vector<char> json_rendering(
     ucs4_carray_view title, Screen const & screen,
     ColorTableView palette, std::string_view extra_data = {}

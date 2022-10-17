@@ -47,7 +47,7 @@ class TerminalEmulatorCreateFileMode(IntEnum):
 lib.TerminalEmulatorCreateFileMode = TerminalEmulatorCreateFileMode
 
 
-# \return  0 if success, -2 if bad argument (emu is null, bad format, bad size, etc), -1 if internal error with `errno` code to 0 (bad alloc, etc) and > 0 is an `errno` code
+# \return  0 if success ; -3 for bad_alloc ; -2 if bad argument (emu is null, bad format, bad size, etc) ; -1 if internal error with `errno` code to 0 (bad alloc, etc) ; > 0 is an `errno` code,
 # @{
 # char const * terminal_emulator_version() noexcept;
 lib.terminal_emulator_version.argtypes = []
@@ -101,6 +101,10 @@ lib.terminal_emulator_resize.restype = c_int
 TerminalEmulatorBufferGetBufferFn = CFUNCTYPE(c_void_p, c_void_p, POINTER(c_size_t))
 lib.TerminalEmulatorBufferGetBufferFn = TerminalEmulatorBufferGetBufferFn
 
+# \param extra_capacity   bytes required
+# \param p                original pointer of previous allocation (nullptr when no allocation)
+# \param used_size        bytes consumed on \c p pointer
+# \return nullptr when memory allocation error
 TerminalEmulatorBufferExtraMemoryAllocatorFn = CFUNCTYPE(c_void_p, c_void_p, c_size_t, POINTER(c_char), c_size_t)
 lib.TerminalEmulatorBufferExtraMemoryAllocatorFn = TerminalEmulatorBufferExtraMemoryAllocatorFn
 
@@ -116,6 +120,11 @@ lib.TerminalEmulatorBufferDeleteCtxFn = TerminalEmulatorBufferDeleteCtxFn
 # TerminalEmulatorBuffer * terminal_emulator_buffer_new() noexcept;
 lib.terminal_emulator_buffer_new.argtypes = []
 lib.terminal_emulator_buffer_new.restype = c_void_p
+
+# TerminalEmulatorBuffer * terminal_emulator_buffer_new_with_max_capacity(
+#     std::size_t max_capacity, std::size_t pre_alloc_len) noexcept;
+lib.terminal_emulator_buffer_new_with_max_capacity.argtypes = [c_size_t, c_size_t]
+lib.terminal_emulator_buffer_new_with_max_capacity.restype = c_void_p
 
 # TerminalEmulatorBuffer * terminal_emulator_buffer_new_with_custom_allocator(
 #     void * ctx,
@@ -151,6 +160,16 @@ lib.terminal_emulator_buffer_get_data.restype = POINTER(c_char)
 
 # int terminal_emulator_buffer_clear_data(TerminalEmulatorBuffer *) noexcept;
 # END buffer
+# BEGIN read
+# Construct a transcript buffer of session recorded by ttyrec.
+# int terminal_emulator_buffer_prepare_transcript_from_ttyrec(
+#     TerminalEmulatorBuffer * buffer,
+#     char const * infile,
+#     TerminalEmulatorTranscriptPrefix prefix_type) noexcept;
+lib.terminal_emulator_buffer_prepare_transcript_from_ttyrec.argtypes = [c_void_p, c_char_p, c_int]
+lib.terminal_emulator_buffer_prepare_transcript_from_ttyrec.restype = c_int
+
+# END read
 # BEGIN write
 # int terminal_emulator_buffer_write(
 #     TerminalEmulatorBuffer const * buffer, char const * filename,
@@ -164,7 +183,7 @@ lib.terminal_emulator_buffer_write.restype = c_int
 lib.terminal_emulator_buffer_write_integrity.argtypes = [c_void_p, c_char_p, c_char_p, c_int]
 lib.terminal_emulator_buffer_write_integrity.restype = c_int
 
-# \brief Generate a transcript file of session recorded by ttyrec
+# Generate a transcript file of session recorded by ttyrec.
 # \param outfile  output file when not null, otherwise stdout
 # int terminal_emulator_transcript_from_ttyrec(
 #     char const * infile, char const * outfile, int mode,

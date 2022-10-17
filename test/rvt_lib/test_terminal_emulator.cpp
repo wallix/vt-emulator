@@ -180,6 +180,26 @@ BOOST_AUTO_TEST_CASE(TestTermEmu)
     BOOST_CHECK_LT(0, terminal_emulator_buffer_write(emubuf, "/a/a", 0664, force_create));
 }
 
+BOOST_AUTO_TEST_CASE(TestEmulatorBufferTranscript)
+{
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);          // for localtime_r
+
+    std::unique_ptr<TerminalEmulatorBuffer> uemubuf{terminal_emulator_buffer_new()};
+    auto* emubuf = uemubuf.get();
+
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare_transcript_from_ttyrec(emubuf, "test/data/ttyrec1", TranscriptPrefix::datetime));
+
+    std::string_view contents =
+        "2017-11-29 17:29:05 [2]~/projects/vt-emulator!4902$(nomove)✗ l               ~/projects/vt-emulator\n"
+        "2017-11-29 17:29:05 binding/  jam/     LICENSE   packaging/  redemption/  test/   typescript\n"
+        "2017-11-29 17:29:05 browser/  Jamroot  out_text  README.md   src/         tools/  vt-emulator.kdev4\n"
+        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-emulator\n"
+        ;
+
+    BOOST_CHECK_EQUAL(contents.size(), get_data(emubuf).size());
+    BOOST_CHECK_EQUAL(contents, get_data(emubuf));
+}
+
 BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)
 {
     setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);          // for localtime_r
@@ -194,6 +214,21 @@ BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)
     BOOST_CHECK_EQUAL(EEXIST, terminal_emulator_transcript_from_ttyrec("test/data/ttyrec1", outfile, 0664, CreateFileMode::fail_if_exists, TranscriptPrefix::datetime));
 }
 
+BOOST_AUTO_TEST_CASE(TestEmulatorBufferTranscriptBigFile)
+{
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);          // for localtime_r
+
+    std::unique_ptr<TerminalEmulatorBuffer> uemubuf{terminal_emulator_buffer_new()};
+    auto* emubuf = uemubuf.get();
+
+    BOOST_CHECK_EQUAL(0, terminal_emulator_buffer_prepare_transcript_from_ttyrec(emubuf, "test/data/debian.ttyrec", TranscriptPrefix::datetime));
+
+    auto const ref = get_file_contents("test/data/debian.transcript.txt");
+    auto hash = std::hash<std::string_view>{};
+    BOOST_CHECK_EQUAL(ref.size(), get_data(emubuf).size());
+    BOOST_CHECK_EQUAL(hash(ref), hash(get_data(emubuf)));
+}
+
 BOOST_AUTO_TEST_CASE(TestEmulatorTranscriptBigFile)
 {
     setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);          // for localtime_r
@@ -202,6 +237,7 @@ BOOST_AUTO_TEST_CASE(TestEmulatorTranscriptBigFile)
         "test/data/debian.ttyrec", outfile, 0664, force_create, TranscriptPrefix::datetime));
     auto const ref = get_file_contents("test/data/debian.transcript.txt");
     auto const gen = get_file_contents(outfile);
-    auto hash = std::hash<std::string>{};
+    auto hash = std::hash<std::string_view>{};
+    BOOST_CHECK_EQUAL(ref.size(), gen.size());
     BOOST_CHECK_EQUAL(hash(ref), hash(gen));
 }

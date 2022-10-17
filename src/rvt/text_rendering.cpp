@@ -56,20 +56,32 @@ static constexpr char digit10_pairs[200] = {
 
 struct RenderingBuffer2
 {
-    RenderingBuffer2(RenderingBuffer buffer) noexcept
-    : _p(buffer.buffer)
+    RenderingBuffer2(RenderingBuffer buffer, std::size_t consumed_len = 0) noexcept
+    : _p(buffer.buffer + consumed_len)
     , _ctx(buffer.ctx)
     , _start_p(buffer.buffer)
     , _end_p(buffer.buffer + buffer.length)
     , _allocate(buffer.allocate)
     , _set_final_buffer(buffer.set_final_buffer)
-    {}
+    {
+        assert(_p <= _end_p);
+    }
+
+    TranscriptPartialBuffer to_transcript_buffer() const
+    {
+        return {_start_p, buffer_length(), checked_int(_p - _start_p)};
+    }
 
     void prepare_buffer(std::size_t min_remaining, std::size_t extra_capacity)
     {
         if (REDEMPTION_UNLIKELY(remaining() < min_remaining)) {
             allocate(extra_capacity);
         }
+    }
+
+    void prepare_buffer(std::size_t extra_capacity)
+    {
+        prepare_buffer(extra_capacity, extra_capacity);
     }
 
     uint8_t* start_buffer() const
@@ -85,6 +97,9 @@ struct RenderingBuffer2
     void allocate(std::size_t extra_capacity)
     {
         auto* p = _allocate(_ctx, extra_capacity, start_buffer(), buffer_length());
+        if (REDEMPTION_UNLIKELY(not p)) {
+            throw std::bad_alloc();
+        }
         _p = bytes_t(p).to_charp();
         _start_p = _p;
         _end_p = _p + extra_capacity;
@@ -108,6 +123,11 @@ struct RenderingBuffer2
 
     void unsafe_push_ucs(ucs4_char ucs)
     {
+        _p += unsafe_ucs4_to_utf8(ucs, _p);
+    }
+
+    void unsafe_push_quoted_ucs(ucs4_char ucs)
+    {
         switch (ucs) {
             case '\\': assert(remaining() >= 2); *_p++ = '\\'; *_p++ = '\\'; break;
             case '"': assert(remaining() >= 2); *_p++ = '\\'; *_p++ = '"'; break;
@@ -115,19 +135,26 @@ struct RenderingBuffer2
         }
     }
 
-    void unsafe_push_character(Character const & ch, const rvt::ExtendedCharTable & extended_char_table, std::size_t extra_capacity)
+    void unsafe_push_quoted_character(Character const & ch, const rvt::ExtendedCharTable & extended_char_table, std::size_t extra_capacity)
     {
         if (ch.isRealCharacter) {
             if (REDEMPTION_UNLIKELY(ch.is_extended())) {
                 this->push_ucs_array(extended_char_table[ch.character], extra_capacity);
             }
             else {
-                this->unsafe_push_ucs(ch.character);
+                this->unsafe_push_quoted_ucs(ch.character);
             }
         }
         else {
             // TODO only if tabulation character
             this->unsafe_push_c(' ');
+        }
+    }
+
+    void unsafe_push_quoted_ucs_array(ucs4_carray_view ucs_array)
+    {
+        for (ucs4_char ucs : ucs_array) {
+            unsafe_push_quoted_ucs(ucs);
         }
     }
 
@@ -141,7 +168,7 @@ struct RenderingBuffer2
     void push_ucs_array(ucs4_carray_view ucs_array, std::size_t extra_capacity)
     {
         prepare_buffer(ucs_array.size() * 4, std::max(extra_capacity, ucs_array.size() * 4u));
-        this->unsafe_push_ucs_array(ucs_array);
+        this->unsafe_push_quoted_ucs_array(ucs_array);
     }
 
     void unsafe_push_s(chars_view str)
@@ -199,7 +226,7 @@ private:
 
     void _unsafe_push_value(ucs4_carray_view x)
     {
-        unsafe_push_ucs_array(x);
+        unsafe_push_quoted_ucs_array(x);
     }
 
     void _unsafe_push_value(chars_view x)
@@ -210,6 +237,7 @@ private:
     void _unsafe_push_value(U8Color x)
     {
         uint8_t value { underlying_cast(x) };
+        // TODO remove condition
         if (value < 100) {
             if (value < 10) {
                 unsafe_push_c(char('0' + value));
@@ -307,7 +335,7 @@ void json_rendering(
     buf.unsafe_push_values(",\"lines\":"_av, screen.getLines(),
                            ",\"columns\":"_av, screen.getColumns(),
                            ",\"title\":\""_av);
-    buf.unsafe_push_ucs_array(title);
+    buf.unsafe_push_quoted_ucs_array(title);
     buf.unsafe_push_values("\",\"style\":{\"r\":0"
                            ",\"f\":"_av, color2int(palette[0]),
                            ",\"b\":"_av, color2int(palette[1]), "},\"data\":["_av);
@@ -371,7 +399,7 @@ void json_rendering(
                     buf.unsafe_push_s(R"("s":")"_av);
                 }
 
-                buf.unsafe_push_character(ch, screen.extendedCharTable(), 4096);
+                buf.unsafe_push_quoted_character(ch, screen.extendedCharTable(), 4096);
 
                 previous_ch = &ch;
             }
@@ -448,7 +476,7 @@ void ansi_rendering(
                 buf.unsafe_push_c('m');
             }
 
-            buf.unsafe_push_character(ch, screen.extendedCharTable(), 4096);
+            buf.unsafe_push_quoted_character(ch, screen.extendedCharTable(), 4096);
 
             previous_ch = &ch;
         }
@@ -463,6 +491,56 @@ void ansi_rendering(
     }
 
     buf.set_final();
+}
+
+
+TranscriptPartialBuffer transcript_partial_rendering(
+    Screen const & screen, size_t y, size_t yend,
+    RenderingBuffer buffer, std::size_t consumed_buffer
+) {
+    RenderingBuffer2 buf{buffer, consumed_buffer};
+
+    using Line = array_view<const rvt::Character>;
+
+    auto write_line_impl = [&](Line line){
+        std::size_t nb_byte_for_ascii_line = line.size() * 4u;
+        buf.prepare_buffer(nb_byte_for_ascii_line);
+        for (auto const& ch : line) {
+            if (REDEMPTION_UNLIKELY(ch.is_extended())) {
+                auto chars = screen.extendedCharTable()[ch.character];
+                buf.prepare_buffer(chars.size() * 4);
+                buf.unsafe_push_ucs_array(chars);
+                buf.prepare_buffer(checked_int((line.end() - &ch) * 4), nb_byte_for_ascii_line);
+            }
+            else {
+                buf.unsafe_push_ucs(ch.character);
+            }
+        }
+    };
+
+    auto const&& lines = screen.getScreenLines();
+    auto const&& lineProperties = screen.getLineProperties();
+    constexpr auto wrapped = rvt::LineProperty::Wrapped;
+    while (y && bool(lineProperties[y-1] & wrapped)) {
+        --y;
+    }
+    while (y < yend) {
+        write_line_impl(lines[y]);
+        if (bool(lineProperties[y] & wrapped)) {
+            while (++y < lines.size()) {
+                write_line_impl(lines[y]);
+                if (!bool(lineProperties[y] & wrapped)) {
+                    break;
+                }
+            }
+        }
+        ++y;
+
+        buf.prepare_buffer(1);
+        buf.unsafe_push_c('\n');
+    }
+
+    return buf.to_transcript_buffer();
 }
 
 namespace

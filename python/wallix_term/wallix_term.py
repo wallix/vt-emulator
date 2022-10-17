@@ -44,6 +44,9 @@ def _check_errnum(errnum: int) -> None:
     if errnum == -2:
         raise TerminalEmulatorException("bad argument(s)")
 
+    if errnum == -3:
+        raise TerminalEmulatorException("bad alloc")
+
     if errnum < 0:
         raise TerminalEmulatorException("internal error")
 
@@ -112,7 +115,16 @@ class TerminalEmulatorBuffer:
         else:
             _check_errnum(lib.terminal_emulator_buffer_prepare(self._ctx, emu._ctx, int(format)))
 
-    def get_data(self) -> bytes:
+    def prepare_transcript_from_ttyrec(self,
+                                       infile: PathLikeObject,
+                                       prefix_type: TranscriptPrefix = TranscriptPrefix.datetime) -> None:
+        _check_errnum(lib.terminal_emulator_buffer_prepare_transcript_from_ttyrec(
+            self._ctx, fsencode(infile), prefix_type))
+
+    def as_bytes(self) -> bytes:
+        return self.get_data().raw
+
+    def get_data(self) -> Array:
         p, n = self.get_raw_data()
         return (c_char * n).from_address(p)
 
