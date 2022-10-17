@@ -173,10 +173,12 @@ BOOST_AUTO_TEST_CASE(TestEmulatorReplay1)
         });
     }
 
-    auto s = ansi_rendering(
+    std::vector<char> s;
+    ansi_rendering(
         {},
         emulator.getCurrentScreen(),
         rvt::color_table,
+        rvt::RenderingBuffer::from_vector(s),
         std::string_view()
     );
 

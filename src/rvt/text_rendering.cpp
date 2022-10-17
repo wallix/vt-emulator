@@ -96,7 +96,7 @@ struct RenderingBuffer2
 
     void allocate(std::size_t extra_capacity)
     {
-        auto* p = _allocate(_ctx, extra_capacity, start_buffer(), buffer_length());
+        auto* p = _allocate(_ctx, &extra_capacity, start_buffer(), buffer_length());
         if (REDEMPTION_UNLIKELY(not p)) {
             throw std::bad_alloc();
         }
@@ -549,10 +549,11 @@ namespace
 template<class T>
 RenderingBuffer vector_to_rendering_buffer(std::vector<T>& v)
 {
-    auto allocate = [](void* ctx, std::size_t extra_capacity, uint8_t* p, std::size_t used_size) {
+    auto allocate = [](void* ctx, std::size_t* extra_capacity_in_out, uint8_t* p, std::size_t used_size) {
         auto v = static_cast<std::vector<T>*>(ctx);
         std::size_t current_len = static_cast<std::size_t>(p - bytes_t(v->data()).to_u8p()) + used_size;
-        v->resize(current_len + extra_capacity);
+        v->resize(current_len + *extra_capacity_in_out);
+        *extra_capacity_in_out = v->size() - current_len;
         return bytes_t(v->data()).to_u8p() + current_len;
     };
 
@@ -575,26 +576,6 @@ RenderingBuffer RenderingBuffer::from_vector(std::vector<char>& v)
 RenderingBuffer RenderingBuffer::from_vector(std::vector<uint8_t>& v)
 {
     return vector_to_rendering_buffer(v);
-}
-
-std::vector<char> json_rendering(
-    ucs4_carray_view title, Screen const & screen,
-    ColorTableView palette, std::string_view extra_data
-)
-{
-    std::vector<char> v;
-    json_rendering(title, screen, palette, RenderingBuffer::from_vector(v), extra_data);
-    return v;
-}
-
-std::vector<char> ansi_rendering(
-    ucs4_carray_view title, Screen const & screen,
-    ColorTableView palette, std::string_view extra_data
-)
-{
-    std::vector<char> v;
-    ansi_rendering(title, screen, palette, RenderingBuffer::from_vector(v), extra_data);
-    return v;
 }
 
 }

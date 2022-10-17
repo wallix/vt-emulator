@@ -100,13 +100,16 @@ struct TerminalEmulatorBufferWithVector : TerminalEmulatorBuffer
             return v.data();
         },
         // alloc extra memory
-        [](void* ctx, std::size_t extra_capacity, uint8_t* p, std::size_t used_size) -> uint8_t* {
+        [](void* ctx, std::size_t* extra_capacity_in_out, uint8_t* p, std::size_t used_size) -> uint8_t* {
+            assert(extra_capacity_in_out);
+            auto extra_capacity = *extra_capacity_in_out;
             auto* d = static_cast<Data*>(ctx);
             std::size_t current_len = d->count_before(p) + used_size;
             if (REDEMPTION_UNLIKELY(d->max_capacity - current_len <= extra_capacity)) {
                 return nullptr;
             }
             d->v.resize(current_len + extra_capacity);
+            *extra_capacity_in_out = d->v.capacity() - current_len;
             return bytes_t(d->v.data()).to_u8p() + current_len;
         },
         // set final buffer
@@ -175,7 +178,8 @@ static int build_format_string(
                     emu.emulator.getWindowTitle(),     \
                     emu.emulator.getCurrentScreen(),   \
                     rvt::xterm_color_table,            \
-                    rendering_buffer, extra_data       \
+                    rendering_buffer,                  \
+                    extra_data                         \
                 ); return 0
         switch (format) {
             call_rendering(json);
@@ -593,9 +597,9 @@ int terminal_emulator_buffer_prepare_transcript_from_ttyrec(
         void write_time()
         {
             if (REDEMPTION_UNLIKELY(rendering_buffer.length - consumed_buffer < 21)) {
-                constexpr std::size_t capacity = 4 * 1024;
+                std::size_t capacity = 4 * 1024;
                 auto p = start_buffer();
-                p = rendering_buffer.allocate(rendering_buffer.ctx, capacity, p, consumed_buffer);
+                p = rendering_buffer.allocate(rendering_buffer.ctx, &capacity, p, consumed_buffer);
                 if (REDEMPTION_UNLIKELY(not p)) {
                     throw std::bad_alloc();
                 }

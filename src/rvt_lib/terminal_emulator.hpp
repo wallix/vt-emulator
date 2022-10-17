@@ -90,15 +90,15 @@ int terminal_emulator_resize(TerminalEmulator * emu, int lines, int columns) noe
 
 //BEGIN buffer
 using TerminalEmulatorBufferGetBufferFn
-  = uint8_t*(void* ctx, std::size_t * output_len) noexcept;
-/// \param extra_capacity   bytes required
-/// \param p                original pointer of previous allocation (nullptr when no allocation)
-/// \param used_size        bytes consumed on \c p pointer
+  = uint8_t*(void * ctx, std::size_t * output_len) noexcept;
+/// \param extra_capacity_in_out  bytes required
+/// \param p                      original pointer of previous allocation (nullptr when no allocation)
+/// \param used_size              bytes consumed on \c p pointer
 /// \return nullptr when memory allocation error
 using TerminalEmulatorBufferExtraMemoryAllocatorFn
-  = uint8_t*(void* ctx, std::size_t extra_capacity, uint8_t* p, std::size_t used_size);
+  = uint8_t*(void * ctx, std::size_t * extra_capacity_in_out, uint8_t * p, std::size_t used_size);
 using TerminalEmulatorBufferSetFinalBufferFn
-  = void(void* ctx, uint8_t* p, std::size_t used_size);
+  = void(void * ctx, uint8_t * p, std::size_t used_size);
 using TerminalEmulatorBufferClearFn = void(void* ctx) noexcept;
 using TerminalEmulatorBufferDeleteCtxFn = void(void* ctx) noexcept;
 
