@@ -26,7 +26,7 @@
 #include "rvt/utf8_decoder.hpp"
 #include "rvt/text_rendering.hpp"
 
-#include <new>
+#include <memory>
 
 #include <cerrno>
 #include <cstdlib>
@@ -78,12 +78,19 @@ struct TerminalEmulatorBufferWithVector : TerminalEmulatorBuffer
 {
     struct Data
     {
-        std::vector<uint8_t> v;
+        std::unique_ptr<uint8_t[]> buffer;
+        std::size_t length;
+        std::size_t capacity;
         std::size_t max_capacity;
 
         std::size_t count_before(uint8_t* p) const
         {
-            return static_cast<std::size_t>(p - v.data());
+            return static_cast<std::size_t>(p - data());
+        }
+
+        uint8_t* data() const noexcept
+        {
+            return buffer.get();
         }
     };
 
@@ -95,31 +102,53 @@ struct TerminalEmulatorBufferWithVector : TerminalEmulatorBuffer
         &d,
         // get buffer
         [](void* ctx, std::size_t * output_len) noexcept {
-            auto& v = static_cast<Data*>(ctx)->v;
-            *output_len = v.size();
-            return v.data();
+            auto& d = *static_cast<Data*>(ctx);
+            *output_len = d.length;
+            return d.data();
         },
         // alloc extra memory
         [](void* ctx, std::size_t* extra_capacity_in_out, uint8_t* p, std::size_t used_size) -> uint8_t* {
             assert(extra_capacity_in_out);
-            auto extra_capacity = *extra_capacity_in_out;
-            auto* d = static_cast<Data*>(ctx);
-            std::size_t current_len = d->count_before(p) + used_size;
-            if (REDEMPTION_UNLIKELY(d->max_capacity - current_len <= extra_capacity)) {
+            auto& d = *static_cast<Data*>(ctx);
+
+            std::size_t const extra_capacity = *extra_capacity_in_out;
+            std::size_t const current_len = d.count_before(p) + used_size;
+
+            // check max_capacity
+            if (REDEMPTION_UNLIKELY(d.max_capacity - current_len <= extra_capacity)) {
                 return nullptr;
             }
-            d->v.resize(current_len + extra_capacity);
-            *extra_capacity_in_out = d->v.capacity() - current_len;
-            return bytes_t(d->v.data()).to_u8p() + current_len;
+
+            // resize
+            std::size_t new_size = current_len + extra_capacity;
+            if (new_size > d.capacity) {
+                new_size = d.length + std::max(d.length, new_size);
+                new_size = std::min(d.max_capacity, new_size);
+                auto* new_buffer = new(std::nothrow) uint8_t[new_size];
+                if (!new_buffer) {
+                    return nullptr;
+                }
+                if (d.data()) {
+                    memcpy(new_buffer, d.data(), current_len);
+                }
+                d.buffer.reset(new_buffer);
+                d.capacity = new_size;
+            }
+
+            *extra_capacity_in_out = d.capacity - current_len;
+            d.length = current_len + used_size;
+            return d.data() + current_len;
         },
         // set final buffer
         [](void* ctx, uint8_t* p, std::size_t used_size) {
-            Data* d = static_cast<Data*>(ctx);
-            d->v.resize(d->count_before(p) + used_size);
+            auto& d = *static_cast<Data*>(ctx);
+            assert(d.length + used_size <= d.capacity);
+            d.length = d.count_before(p) + used_size;
         },
         // clear
         [](void* ctx) noexcept {
-            static_cast<Data*>(ctx)->v = std::vector<uint8_t>();
+            auto& d = *static_cast<Data*>(ctx);
+            d.length = 0;
         },
         // delete
         [](void* /*ctx*/) noexcept {},
@@ -128,8 +157,19 @@ struct TerminalEmulatorBufferWithVector : TerminalEmulatorBuffer
             delete static_cast<TerminalEmulatorBufferWithVector*>(self);
         }
     }
-    , d{{}, max_capacity == 0 ? ~std::size_t() : max_capacity}
+    , d{{}, 0, 0, max_capacity == 0 ? ~std::size_t() : max_capacity}
     {}
+
+    bool initiale_size(std::size_t len)
+    {
+        auto* buf = new(std::nothrow) uint8_t[len];
+        if (!buf) {
+            return false;
+        }
+        d.buffer.reset(buf);
+        d.length = len;
+        return true;
+    }
 };
 
 } // extern "C"
@@ -323,11 +363,7 @@ TerminalEmulatorBuffer* terminal_emulator_buffer_new_with_max_capacity(
     static_assert(noexcept(TerminalEmulatorBufferWithVector(max_capacity)));
     auto* res = new(std::nothrow) TerminalEmulatorBufferWithVector{max_capacity};
     if (res && pre_alloc_len) {
-        try {
-            res->d.v.resize(pre_alloc_len);
-            res->d.v.reserve(pre_alloc_len);
-        }
-        catch (...) {
+        if (!res->initiale_size(pre_alloc_len)) {
             delete res;
             return nullptr;
         }
