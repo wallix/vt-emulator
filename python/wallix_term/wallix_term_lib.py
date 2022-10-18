@@ -101,11 +101,11 @@ lib.terminal_emulator_resize.restype = c_int
 TerminalEmulatorBufferGetBufferFn = CFUNCTYPE(c_void_p, c_void_p, POINTER(c_size_t))
 lib.TerminalEmulatorBufferGetBufferFn = TerminalEmulatorBufferGetBufferFn
 
-# \param extra_capacity   bytes required
-# \param p                original pointer of previous allocation (nullptr when no allocation)
-# \param used_size        bytes consumed on \c p pointer
+# \param extra_capacity_in_out  bytes required
+# \param p                      original pointer of previous allocation (nullptr when no allocation)
+# \param used_size              bytes consumed on \c p pointer
 # \return nullptr when memory allocation error
-TerminalEmulatorBufferExtraMemoryAllocatorFn = CFUNCTYPE(c_void_p, c_void_p, c_size_t, POINTER(c_char), c_size_t)
+TerminalEmulatorBufferExtraMemoryAllocatorFn = CFUNCTYPE(c_void_p, c_void_p, POINTER(c_size_t), POINTER(c_char), c_size_t)
 lib.TerminalEmulatorBufferExtraMemoryAllocatorFn = TerminalEmulatorBufferExtraMemoryAllocatorFn
 
 TerminalEmulatorBufferSetFinalBufferFn = CFUNCTYPE(None, c_void_p, POINTER(c_char), c_size_t)
