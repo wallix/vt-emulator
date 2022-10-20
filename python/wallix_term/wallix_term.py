@@ -1,6 +1,16 @@
 # ./tools/cpp2ctypes/cpp2ctypes.lua 'src/rvt_lib/terminal_emulator.hpp' '-c'
 
-from .wallix_term_lib import lib
+from .wallix_term_lib import (lib,
+                              TerminalEmulatorLogFunction,
+                              TerminalEmulatorBufferGetBufferFn,
+                              TerminalEmulatorBufferExtraMemoryAllocatorFn,
+                              TerminalEmulatorBufferSetFinalBufferFn,
+                              TerminalEmulatorBufferClearFn,
+                              TerminalEmulatorBufferDeleteCtxFn,
+                              TerminalEmulatorOutputFormat as OutputFormat,
+                              TerminalEmulatorTranscriptPrefix as TranscriptPrefix,
+                              TerminalEmulatorCreateFileMode as CreateFileMode
+                              )
 from collections import namedtuple
 from ctypes import byref, cast, c_size_t, c_char, c_void_p, Array, addressof
 from enum import Enum
@@ -13,24 +23,21 @@ PathLikeObject = Union[str, bytes, PathLike]
 
 # OutputFormat.json = 0
 # OutputFormat.ansi = 1
-OutputFormat = lib.TerminalEmulatorOutputFormat
 
 # TranscriptPrefix.noprefix = 0
 # TranscriptPrefix.datetime = 1
-TranscriptPrefix = lib.TerminalEmulatorTranscriptPrefix
 
 # CreateFileMode.fail_if_exists = 0
 # CreateFileMode.force_create = 1
-CreateFileMode = lib.TerminalEmulatorCreateFileMode
 
 
 class Allocator(NamedTuple):
     ctx: Any
-    get_buffer_fn: Callable#[[void*,size_t*], char*]
-    extra_memory_allocator_fn: Callable#[[void*,size_t,char*,size_t], char*]
-    set_final_buffer_fn: Callable#[[void*,char*,size_t], None]
-    clear_fn: Callable#[[void*], None]
-    delete_ctx_fn: Callable#[[void*], None]
+    get_buffer_fn: Any  # :Callable[[void*,size_t*], char*]
+    extra_memory_allocator_fn: Any  # :Callable[[void*,size_t,char*,size_t], char*]
+    set_final_buffer_fn: Any  # :Callable[[void*,char*,size_t], None]
+    clear_fn: Any  # :Callable[[void*], None]
+    delete_ctx_fn: Any  # :Callable[[void*], None]
 
 
 class TerminalEmulatorException(Exception):
@@ -71,7 +78,7 @@ class TerminalEmulator:
     def set_log_function(self, func: Callable[[str], None]) -> None:
         log_func = lambda p,n: func(p.decode())
         _check_errnum(lib.terminal_emulator_set_log_function(
-            self._ctx, lib.TerminalEmulatorLogFunction(log_func)))
+            self._ctx, TerminalEmulatorLogFunction(log_func)))
         # extend lifetime
         self._log_func = log_func
 
