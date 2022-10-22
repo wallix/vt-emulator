@@ -1,5 +1,5 @@
 <!-- [![Build Status from master](https://travis-ci.org/wallix/vt-emulator.svg?branch=master)](https://travis-ci.org/wallix/vt-emulator) -->
-Vt-emulator is a terminal emulator based to [Konsole](https://konsole.kde.org/download.php) ([repo](https://cgit.kde.org/konsole.git)) without graphical interface.
+Vt-emulator is a terminal emulator based on [Konsole](https://konsole.kde.org/download.php) ([repo](https://cgit.kde.org/konsole.git)) without graphical interface.
 [![Build Status from master](https://travis-ci.org/wallix/vt-emulator.svg?branch=master)](https://travis-ci.org/wallix/vt-emulator)
 
 
