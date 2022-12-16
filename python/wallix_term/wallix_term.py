@@ -66,11 +66,11 @@ class TerminalEmulator:
     def __init__(self, lines: int, columns: int, title: Optional[str] = None) -> None:
         self._ctx = lib.terminal_emulator_new(lines, columns)
 
-        if title:
-            self.set_title(title)
-
         if not self._ctx:
             raise TerminalEmulatorException("malloc error")
+
+        if title:
+            self.set_title(title)
 
     def __del__(self) -> None:
         lib.terminal_emulator_delete(self._ctx)
