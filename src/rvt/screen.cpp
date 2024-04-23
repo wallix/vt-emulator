@@ -753,7 +753,7 @@ void Screen::displayCharacter(ucs4_char c)
 
     int i = 0;
     const int newCursorX = _cuX + w--;
-    while (w) {
+    while (i < w) {
         i++;
 
         Character& ch = _screenLines[_cuY][_cuX + i];
@@ -762,8 +762,6 @@ void Screen::displayCharacter(ucs4_char c)
         ch.backgroundColor = _effectiveBackground;
         ch.rendition = _effectiveRendition;
         ch.isRealCharacter = false;
-
-        w--;
     }
     _cuX = newCursorX;
 }

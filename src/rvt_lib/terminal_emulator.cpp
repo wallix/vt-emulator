@@ -601,6 +601,11 @@ namespace
             return true;
         }
     };
+
+    uint32_t read_tty_u32(uint8_t const* p)
+    {
+        return p[0] | uint32_t(p[1] << 8) | uint32_t(p[2] << 16) | uint32_t(p[3] << 24);
+    };
 }
 
 REDEMPTION_LIB_EXPORT
@@ -672,10 +677,6 @@ int terminal_emulator_buffer_prepare_transcript_from_ttyrec(
         render.write_line(screen, y, yend);
     };
 
-    auto read4B = [](uint8_t const* p) -> uint32_t {
-        return p[0] | uint32_t(p[1] << 8) | uint32_t(p[2] << 16) | uint32_t(p[3] << 24);
-    };
-
     auto run = [&]{
         rvt::VtEmulator emu(20, 80,
             (prefix_type == TerminalEmulatorTranscriptPrefix::datetime)
@@ -686,9 +687,9 @@ int terminal_emulator_buffer_prepare_transcript_from_ttyrec(
 
         while (!in.err && in.read(12)) {
             auto arr = in.advance(12);
-            uint32_t const sec  = read4B(arr.data());
-            //uint32_t const usec = read4B(arr.data() + 4);
-            uint32_t frame_len  = read4B(arr.data() + 8);
+            uint32_t const sec  = read_tty_u32(arr.data());
+            //uint32_t const usec = read_tty_u32(arr.data() + 4);
+            uint32_t frame_len  = read_tty_u32(arr.data() + 8);
             render.time = sec /*+ (usec / 1000000)*/;
 
             if (frame_len > in.remaining()) {
@@ -855,9 +856,9 @@ int terminal_emulator_transcript_from_ttyrec(
         auto ucs_receiver = [&emu](rvt::ucs4_char ucs) { emu.receiveChar(ucs); };
         while (!in.err && in.read(12)) {
             auto arr = in.advance(12);
-            uint32_t const sec  = arr[0] | (arr[1] << 8) | (arr[ 2] << 16) | (arr[ 3] << 24);
-            //uint32_t const usec = arr[4] | (arr[5] << 8) | (arr[ 6] << 16) | (arr[ 7] << 24);
-            uint32_t frame_len  = arr[8] | (arr[9] << 8) | (arr[10] << 16) | (arr[11] << 24);
+            uint32_t const sec  = read_tty_u32(arr.data());
+            //uint32_t const usec = read_tty_u32(arr.data() + 4);
+            uint32_t frame_len  = read_tty_u32(arr.data() + 8);
             out.time = sec /*+ (usec / 1000000)*/;
 
             if (frame_len > in.remaining()) {
