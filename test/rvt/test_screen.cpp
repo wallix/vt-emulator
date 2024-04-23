@@ -184,4 +184,13 @@ BOOST_AUTO_TEST_CASE(TestScreenInsert)
     screen.newLine();
     screen.displayCharacter('t');
     BOOST_CHECK_EQUAL(to_string(screen), "[r       ]\n[        ]\n[ s      ]\n[  t     ]\n");
+
+    screen.displayCharacter(/*𨭎*/ 0x28b4e);
+    screen.displayCharacter('a');
+    BOOST_CHECK_EQUAL(screen.getScreenLines()[3][3].character, 0x28b4e);
+    BOOST_CHECK_EQUAL(screen.getScreenLines()[3][3].isRealCharacter, true);
+    BOOST_CHECK_EQUAL(screen.getScreenLines()[3][4].character, 0);
+    BOOST_CHECK_EQUAL(screen.getScreenLines()[3][4].isRealCharacter, false);
+    BOOST_CHECK_EQUAL(screen.getScreenLines()[3][5].character, 'a');
+    BOOST_CHECK_EQUAL(screen.getScreenLines()[3][5].isRealCharacter, true);
 }

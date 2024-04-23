@@ -145,4 +145,13 @@ BOOST_AUTO_TEST_CASE(TestUtf8Decoder)
         decoder.end_decode(Accu()).v,
         utils::make_array<rvt::ucs4_char>()
     );
+
+    BOOST_CHECK_EQUAL_RANGES(
+        decoder.decode(cstr_array_view("𨭎"), Accu()).v,
+        utils::make_array<rvt::ucs4_char>(0x28b4e)
+    );
+    BOOST_CHECK_EQUAL_RANGES(
+        decoder.end_decode(Accu()).v,
+        utils::make_array<rvt::ucs4_char>()
+    );
 }
