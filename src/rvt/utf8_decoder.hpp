@@ -55,7 +55,7 @@ inline std::size_t unsafe_ucs4_to_utf8(uint32_t uc, bytes_t s)
         return 3;
     }
 
-    if (uc <= 0x1ffff) {
+    if (uc <= 0x10ffff) {
         s[0] = uint8_t(0xf0 | ((uc >> 18) & 0x07));
         s[1] = uint8_t(0x80 | ((uc >> 12) & 0x3f));
         s[2] = uint8_t(0x80 | ((uc >> 6)  & 0x3f));
