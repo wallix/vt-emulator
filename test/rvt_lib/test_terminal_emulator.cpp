@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(TestEmulatorBufferTranscript)
         "2017-11-29 17:29:05 [2]~/projects/vt-emulator!4902$(nomove)✗ l               ~/projects/vt-emulator\n"
         "2017-11-29 17:29:05 binding/  jam/     LICENSE   packaging/  redemption/  test/   typescript\n"
         "2017-11-29 17:29:05 browser/  Jamroot  out_text  README.md   src/         tools/  vt-emulator.kdev4\n"
-        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-emulator\n"
+        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-𨭎ator\n"
         ;
 
     BOOST_CHECK_EQUAL(contents.size(), get_data(emubuf).size());
@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(TestEmulatorTranscript)
         "2017-11-29 17:29:05 [2]~/projects/vt-emulator!4902$(nomove)✗ l               ~/projects/vt-emulator\n"
         "2017-11-29 17:29:05 binding/  jam/     LICENSE   packaging/  redemption/  test/   typescript\n"
         "2017-11-29 17:29:05 browser/  Jamroot  out_text  README.md   src/         tools/  vt-emulator.kdev4\n"
-        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-emulator\n");
+        "2017-11-29 17:29:06 [2]~/projects/vt-emulator!4903$(nomove)✗                 ~/projects/vt-𨭎ator\n");
     BOOST_CHECK_EQUAL(EEXIST, terminal_emulator_transcript_from_ttyrec("test/data/ttyrec1", outfile, 0664, CreateFileMode::fail_if_exists, TranscriptPrefix::datetime));
 }
 

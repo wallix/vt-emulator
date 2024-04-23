@@ -145,10 +145,6 @@ struct RenderingBuffer2
                 this->unsafe_push_quoted_ucs(ch.character);
             }
         }
-        else {
-            // TODO only if tabulation character
-            this->unsafe_push_c(' ');
-        }
     }
 
     void unsafe_push_quoted_ucs_array(ucs4_carray_view ucs_array)
@@ -506,14 +502,16 @@ TranscriptPartialBuffer transcript_partial_rendering(
         std::size_t nb_byte_for_ascii_line = line.size() * 4u;
         buf.prepare_buffer(nb_byte_for_ascii_line);
         for (auto const& ch : line) {
-            if (REDEMPTION_UNLIKELY(ch.is_extended())) {
-                auto chars = screen.extendedCharTable()[ch.character];
-                buf.prepare_buffer(chars.size() * 4);
-                buf.unsafe_push_ucs_array(chars);
-                buf.prepare_buffer(checked_int((line.end() - &ch) * 4), nb_byte_for_ascii_line);
-            }
-            else {
-                buf.unsafe_push_ucs(ch.character);
+            if (ch.isRealCharacter) {
+                if (REDEMPTION_UNLIKELY(ch.is_extended())) {
+                    auto chars = screen.extendedCharTable()[ch.character];
+                    buf.prepare_buffer(chars.size() * 4);
+                    buf.unsafe_push_ucs_array(chars);
+                    buf.prepare_buffer(checked_int((line.end() - &ch) * 4), nb_byte_for_ascii_line);
+                }
+                else {
+                    buf.unsafe_push_ucs(ch.character);
+                }
             }
         }
     };

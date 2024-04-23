@@ -797,15 +797,17 @@ int terminal_emulator_transcript_from_ttyrec(
         {
             auto write_line_impl = [&](Line line){
                 for (auto const& ch : line) {
-                    if (REDEMPTION_UNLIKELY(ch.is_extended())) {
-                        for (auto ucs : screen.extendedCharTable()[ch.character]) {
-                            prepare();
-                            pbuf += rvt::unsafe_ucs4_to_utf8(ucs, pbuf);
+                    if (ch.isRealCharacter) {
+                        if (REDEMPTION_UNLIKELY(ch.is_extended())) {
+                            for (auto ucs : screen.extendedCharTable()[ch.character]) {
+                                prepare();
+                                pbuf += rvt::unsafe_ucs4_to_utf8(ucs, pbuf);
+                            }
                         }
-                    }
-                    else {
-                        prepare();
-                        pbuf += rvt::unsafe_ucs4_to_utf8(ch.character, pbuf);
+                        else {
+                            prepare();
+                            pbuf += rvt::unsafe_ucs4_to_utf8(ch.character, pbuf);
+                        }
                     }
                 }
             };
