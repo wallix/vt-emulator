@@ -30,6 +30,8 @@
 #include <cstdio>
 
 #include <unistd.h>
+#include <stdlib.h> // mkostemps
+#include <fcntl.h> // O_* flags
 
 namespace
 {
@@ -90,6 +92,61 @@ struct Cli
     }
 };
 
+static bool write_all(int fd, const void * data, size_t len) noexcept
+{
+    size_t remaining_len = len;
+    size_t total_sent = 0;
+    while (remaining_len) {
+        ssize_t ret = ::write(fd, static_cast<const char*>(data) + total_sent, remaining_len);
+        if (ret <= 0){
+            if (errno == EINTR){
+                continue;
+            }
+            return false;
+        }
+        remaining_len -= ret;
+        total_sent += ret;
+    }
+    return true;
+}
+
+static bool write_all(int fd, TerminalEmulatorBuffer const * buffer) noexcept
+{
+    std::size_t len = 0;
+    uint8_t const* data = terminal_emulator_buffer_get_data(buffer, &len);
+    return write_all(fd, data, len);
+}
+
+int terminal_emulator_buffer_write_integrity(
+    TerminalEmulatorBuffer const * buffer, char const * filename,
+    char const * prefix_tmp_filename
+) noexcept
+{
+    char tmpfilename[4096];
+    tmpfilename[0] = 0;
+    if (prefix_tmp_filename == nullptr) {
+        prefix_tmp_filename = filename;
+    }
+    int n = std::snprintf(tmpfilename, sizeof(tmpfilename) - 1, "%s-teremu-XXXXXX.tmp", prefix_tmp_filename);
+    tmpfilename[n < 0 ? 0 : n] = 0;
+
+    const int fd = ::mkostemps(tmpfilename, 4, O_WRONLY | O_CREAT);
+    if (fd == -1) {
+        return -1;
+    }
+
+    if (!write_all(fd, buffer) || rename(tmpfilename, filename) == -1) {
+        auto const err = errno;
+        close(fd);
+        unlink(tmpfilename);
+        return err ? err : -1;
+    }
+
+    close(fd);
+
+    return 0;
+}
+
 } // anonymous namespace
 
 using OutputFormat = TerminalEmulatorOutputFormat;
@@ -141,12 +198,12 @@ int main(int ac, char ** av)
         PError(terminal_emulator_buffer_prepare(
             emu_buffer, emu, TerminalEmulatorOutputFormat::json));
         PError(terminal_emulator_buffer_write_integrity(
-            emu_buffer, cli.filename, cli.filename, 0660));
+            emu_buffer, cli.filename, cli.filename));
     }
 
     PError(terminal_emulator_finish(emu));
     PError(terminal_emulator_buffer_prepare(emu_buffer, emu, TerminalEmulatorOutputFormat::json));
-    PError(terminal_emulator_buffer_write_integrity(emu_buffer, cli.filename, cli.filename, 0660));
+    PError(terminal_emulator_buffer_write_integrity(emu_buffer, cli.filename, cli.filename));
 
     terminal_emulator_buffer_delete(emu_buffer);
     terminal_emulator_delete(emu);

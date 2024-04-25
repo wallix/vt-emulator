@@ -9,7 +9,6 @@ from .wallix_term_lib import (lib,
                               TerminalEmulatorBufferDeleteCtxFn,
                               TerminalEmulatorOutputFormat as OutputFormat,
                               TerminalEmulatorTranscriptPrefix as TranscriptPrefix,
-                              TerminalEmulatorCreateFileMode as CreateFileMode
                               )
 from collections import namedtuple
 from ctypes import byref, cast, c_size_t, c_char, c_void_p, Array, addressof
@@ -26,9 +25,6 @@ PathLikeObject = Union[str, bytes, PathLike]
 
 # TranscriptPrefix.noprefix = 0
 # TranscriptPrefix.datetime = 1
-
-# CreateFileMode.fail_if_exists = 0
-# CreateFileMode.force_create = 1
 
 
 class Allocator(NamedTuple):
@@ -122,11 +118,17 @@ class TerminalEmulatorBuffer:
         else:
             _check_errnum(lib.terminal_emulator_buffer_prepare(self._ctx, emu._ctx, int(format)))
 
-    def prepare_transcript_from_ttyrec(self,
-                                       infile: PathLikeObject,
-                                       prefix_type: TranscriptPrefix = TranscriptPrefix.datetime) -> None:
-        _check_errnum(lib.terminal_emulator_buffer_prepare_transcript_from_ttyrec(
+    def prepare_transcript_from_ttyrec_file(self,
+                                            infile: PathLikeObject,
+                                            prefix_type: TranscriptPrefix = TranscriptPrefix.datetime) -> None:
+        _check_errnum(lib.terminal_emulator_buffer_prepare_transcript_from_ttyrec_file(
             self._ctx, fsencode(infile), prefix_type))
+
+    def prepare_transcript_from_ttyrec_buffer(self,
+                                              data: memoryview,
+                                              prefix_type: TranscriptPrefix = TranscriptPrefix.datetime) -> None:
+        _check_errnum(lib.terminal_emulator_buffer_prepare_transcript_from_ttyrec_buffer(
+            self._ctx, data, len(data), prefix_type))
 
     def as_bytes(self) -> bytes:
         return self.get_data().raw
@@ -144,29 +146,3 @@ class TerminalEmulatorBuffer:
         if not p:
             raise TerminalEmulatorException('invalid buffer')
         return (addressof(p.contents), n.value)
-
-    def write(self, filename: PathLikeObject,
-              mode: int = 0o664,
-              create_mode: CreateFileMode=CreateFileMode.fail_if_exists) -> None:
-        _check_errnum(lib.terminal_emulator_buffer_write(self._ctx, fsencode(filename), mode, create_mode))
-
-    def write_integrity(self,
-                        filename: PathLikeObject,
-                        mode: int = 0o664,
-                        prefix_tmp_filename: Optional[PathLikeObject] = None) -> None:
-        filename = fsencode(filename)
-        _check_errnum(lib.terminal_emulator_buffer_write_integrity(
-            self._ctx, filename, fsencode(prefix_tmp_filename) if prefix_tmp_filename else filename, mode))
-
-
-def transcript_from_ttyrec(infile: PathLikeObject,
-                           outfile: Optional[PathLikeObject] = None,
-                           mode: int = 0o664,
-                           create_mode: CreateFileMode = CreateFileMode.fail_if_exists,
-                           prefix_type: TranscriptPrefix = TranscriptPrefix.datetime) -> None:
-    """
-    Generate a transcript file of session recorded by ttyrec
-    """
-    _check_errnum(lib.terminal_emulator_transcript_from_ttyrec(fsencode(infile),
-                                                               fsencode(outfile) if outfile else None,
-                                                               mode, create_mode, prefix_type))

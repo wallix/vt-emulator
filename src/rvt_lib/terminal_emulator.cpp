@@ -32,10 +32,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
-
-#include <unistd.h> // unlink
-#include <fcntl.h> // O_* flags
-#include <sys/stat.h> // fchmod
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 
 extern "C"
@@ -178,31 +179,6 @@ struct TerminalEmulatorBufferWithVector : TerminalEmulatorBuffer
 
 } // extern "C"
 
-static bool write_all(int fd, const void * data, size_t len) noexcept
-{
-    size_t remaining_len = len;
-    size_t total_sent = 0;
-    while (remaining_len) {
-        ssize_t ret = ::write(fd, static_cast<const char*>(data) + total_sent, remaining_len);
-        if (ret <= 0){
-            if (errno == EINTR){
-                continue;
-            }
-            return false;
-        }
-        remaining_len -= ret;
-        total_sent += ret;
-    }
-    return true;
-}
-
-static bool write_all(int fd, TerminalEmulatorBuffer const * buffer) noexcept
-{
-    std::size_t len = 0;
-    uint8_t* data = buffer->get_buffer_fn(buffer->ctx, &len);
-    return write_all(fd, data, len);
-}
-
 static int errno_or_single_error() noexcept
 {
     int errnum = errno;
@@ -248,7 +224,6 @@ char const * terminal_emulator_version() noexcept
 
 #define return_nullptr_if(x) do { if (REDEMPTION_UNLIKELY(x)) { return nullptr; } } while (0)
 #define return_if(x) do { if (REDEMPTION_UNLIKELY(x)) { return -2; } } while (0)
-#define return_errno_if(x) do { if (REDEMPTION_UNLIKELY(x)) { return errno_or_single_error(); } } while (0)
 #define Panic(expr, err) do { try { expr; } \
     catch (...) { return err; } } while (0)
 #define Panic_errno(expr) do { try { expr; } \
@@ -451,185 +426,13 @@ int terminal_emulator_buffer_clear_data(TerminalEmulatorBuffer * buffer) noexcep
     return 0;
 }
 
-
 namespace
 {
-    int create_file_mode(TerminalEmulatorCreateFileMode create_mode) noexcept
-    {
-        switch (create_mode)
-        {
-            case TerminalEmulatorCreateFileMode::force_create: return O_TRUNC | O_CREAT;
-            case TerminalEmulatorCreateFileMode::fail_if_exists: return O_EXCL | O_CREAT;
-        }
-        return 0;
-    }
-}
-
-REDEMPTION_LIB_EXPORT
-int terminal_emulator_buffer_write(
-    TerminalEmulatorBuffer const * buffer, char const * filename, int mode,
-    TerminalEmulatorCreateFileMode create_mode
-) noexcept
-{
-    return_if(!buffer || !filename);
-
-    int fd = ::open(filename, O_WRONLY | create_file_mode(create_mode), mode);
-    return_errno_if(fd == -1);
-
-    if (!write_all(fd, buffer)) {
-        auto err = errno;
-        close(fd);
-        unlink(filename);
-        return err ? err : -1;
-    }
-
-    close(fd);
-
-    return 0;
-}
-
-REDEMPTION_LIB_EXPORT
-int terminal_emulator_buffer_write_integrity(
-    TerminalEmulatorBuffer const * buffer, char const * filename,
-    char const * prefix_tmp_filename, int mode
-) noexcept
-{
-    return_if(!buffer || !filename);
-
-    char tmpfilename[4096];
-    tmpfilename[0] = 0;
-    if (prefix_tmp_filename == nullptr) {
-        prefix_tmp_filename = filename;
-    }
-    int n = std::snprintf(tmpfilename, utils::size(tmpfilename) - 1, "%s-teremu-XXXXXX.tmp", prefix_tmp_filename);
-    tmpfilename[n < 0 ? 0 : n] = 0;
-
-    const int fd = ::mkostemps(tmpfilename, 4, O_WRONLY | O_CREAT);
-    return_errno_if(fd == -1);
-
-    if (fchmod(fd, mode) == -1
-     || !write_all(fd, buffer)
-     || rename(tmpfilename, filename) == -1
-    ) {
-        auto const err = errno;
-        close(fd);
-        unlink(tmpfilename);
-        return err ? err : -1;
-    }
-
-    close(fd);
-
-    return 0;
-}
-
-
-namespace
-{
-    class InputTranscript
-    {
-        int fd;
-        char buf[128 * 1024];
-        char * pbuf = buf;
-        char * ebuf = buf;
-
-    public:
-        int err = 0;
-
-        InputTranscript(int fd)
-        : fd(fd)
-        {
-            assert(fd != -1);
-        }
-
-        ~InputTranscript()
-        {
-            ::close(fd);
-        }
-
-        uint32_t remaining() const
-        {
-            return checked_int(ebuf-pbuf);
-        }
-
-        const_bytes_array advance(uint32_t n)
-        {
-            assert(n <= remaining());
-            assert(pbuf + n <= buf + sizeof(buf));
-            const_bytes_array r{pbuf, n};
-            pbuf += n;
-            return r;
-        }
-
-        bool read(uint32_t n)
-        {
-            if (n > remaining()) {
-                auto const len = remaining();
-                memmove(buf, pbuf, len);
-                pbuf = buf;
-                ebuf = buf + len;
-                do {
-                    if (!read_impl()) {
-                        return false;
-                    }
-                } while (n > remaining());
-            }
-            return true;
-        }
-
-        bool reset_and_read()
-        {
-            assert(pbuf == ebuf);
-            pbuf = buf;
-            ebuf = buf;
-            return read_impl();
-        }
-
-    private:
-        bool read_impl()
-        {
-            for (;;) {
-                ssize_t len = ::read(fd, ebuf, sizeof(buf) - checked_cast<std::size_t>(ebuf-buf));
-                if (REDEMPTION_UNLIKELY(len <= 0)) {
-                    if (len == 0) {
-                        return false;
-                    }
-                    if (errno == EINTR){
-                        continue;
-                    }
-                    err = errno_or_single_error();
-                    return false;
-                }
-                ebuf += len;
-                break;
-            }
-            return true;
-        }
-    };
-
-    uint32_t read_tty_u32(uint8_t const* p)
-    {
-        return p[0] | uint32_t(p[1] << 8) | uint32_t(p[2] << 16) | uint32_t(p[3] << 24);
-    };
-}
-
-REDEMPTION_LIB_EXPORT
-int terminal_emulator_buffer_prepare_transcript_from_ttyrec(
-    TerminalEmulatorBuffer * buffer,
-    char const * infile,
-    TerminalEmulatorTranscriptPrefix prefix_type) noexcept
-{
-    return_if(!buffer || !infile);
-
-    int fd_in { open(infile, O_RDONLY) };
-    if (fd_in == -1) {
-        return errno_or_single_error();
-    }
-
-    struct Render
+    struct TranscryptRender
     {
         rvt::RenderingBuffer rendering_buffer;
-        std::size_t consumed_buffer;
-        time_t time;
+        std::size_t consumed_buffer = 0;
+        time_t time = 0;
 
         void write_line(rvt::Screen const& screen, size_t y, size_t yend)
         {
@@ -668,10 +471,17 @@ int terminal_emulator_buffer_prepare_transcript_from_ttyrec(
             return bytes_t(rendering_buffer.buffer).to_u8p();
         }
     };
+}
 
-    InputTranscript in{fd_in};
+REDEMPTION_LIB_EXPORT
+int terminal_emulator_buffer_prepare_transcript_from_ttyrec_buffer(
+    TerminalEmulatorBuffer * buffer,
+    uint8_t const * data, std::size_t data_len,
+    TerminalEmulatorTranscriptPrefix prefix_type) noexcept
+{
+    return_if(!buffer);
 
-    Render render{buffer->as_rendering_buffer(), 0, 0};
+    TranscryptRender render{buffer->as_rendering_buffer()};
 
     auto line_saver = [&render](rvt::Screen const& screen, size_t y, size_t yend){
         render.write_line(screen, y, yend);
@@ -689,32 +499,32 @@ int terminal_emulator_buffer_prepare_transcript_from_ttyrec(
         rvt::Utf8Decoder decoder;
         auto ucs_receiver = [&emu](rvt::ucs4_char ucs) { emu.receiveChar(ucs); };
 
-        while (!in.err && in.read(12)) {
-            auto arr = in.advance(12);
-            uint32_t const sec  = read_tty_u32(arr.data());
-            //uint32_t const usec = read_tty_u32(arr.data() + 4);
-            uint32_t frame_len  = read_tty_u32(arr.data() + 8);
+        auto* data_end = data + data_len;
+
+        auto read_tty_u32 = [](uint8_t const* p) -> uint32_t {
+            return p[0] | uint32_t(p[1] << 8) | uint32_t(p[2] << 16) | uint32_t(p[3] << 24);
+        };
+
+        while (data != data_end && data_end - data > 12) {
+            uint32_t const sec  = read_tty_u32(data);
+            //uint32_t const usec = read_tty_u32(data() + 4);
+            uint32_t frame_len  = read_tty_u32(data + 8);
             render.time = sec /*+ (usec / 1000000)*/;
+            data += 12;
 
-            if (frame_len > in.remaining()) {
-                bool r;
-                do {
-                    frame_len -= in.remaining();
-                    decoder.decode(in.advance(in.remaining()), ucs_receiver);
-                } while ((r = in.reset_and_read()) && frame_len > in.remaining());
-
-                if (!r) {
-                    return in.err;
-                }
+            if (frame_len > data_end - data) {
+                break;
             }
-            decoder.decode(in.advance(frame_len), ucs_receiver);
+            decoder.decode({data, frame_len}, ucs_receiver);
+            data += frame_len;
         }
 
-        if (in.err) {
-            return in.err;
-        }
         decoder.end_decode(ucs_receiver);
         render.finalize();
+
+        if (data != data_end) {
+            return -1;
+        }
 
         return 0;
     };
@@ -723,178 +533,52 @@ int terminal_emulator_buffer_prepare_transcript_from_ttyrec(
 }
 
 REDEMPTION_LIB_EXPORT
-int terminal_emulator_transcript_from_ttyrec(
-    char const * infile, char const * outfile, int mode,
-    TerminalEmulatorCreateFileMode create_mode,
-    TerminalEmulatorTranscriptPrefix prefix_type
-) noexcept
+int terminal_emulator_buffer_prepare_transcript_from_ttyrec_file(
+    TerminalEmulatorBuffer * buffer,
+    char const * infile,
+    TerminalEmulatorTranscriptPrefix prefix_type) noexcept
 {
-    // TODO based to terminal_emulator_buffer_as_transcript_from_ttyrec()
+    return_if(!buffer || !infile);
 
     int fd_in { open(infile, O_RDONLY) };
     if (fd_in == -1) {
         return errno_or_single_error();
     }
-    InputTranscript in{fd_in};
 
-    struct Fd
+    struct FileCloser
     {
+        ~FileCloser()
+        {
+            close(fd);
+        }
+
         int fd;
-        ~Fd() { if (fd != -1) ::close(fd); }
     };
+    FileCloser _file_closer{fd_in};
 
-    int fd_out = 1;
-    Fd fd_out_{-1};
-    if (outfile && *outfile) {
-        fd_out = open(outfile, O_WRONLY | create_file_mode(create_mode), mode);
-        fd_out_.fd = fd_out;
-        if (fd_out == -1) {
-            return errno_or_single_error();
-        }
-    }
-
-    using Line = array_view<const rvt::Character>;
-
-    class Out
-    {
-        int const fd;
-        char buf[4096];
-
-    public:
-        char * pbuf = buf;
-        int err = 0;
-        time_t time;
-
-        Out(int fd) : fd{fd} {}
-
-        uint32_t remaining() const
-        {
-            return checked_int(pbuf-buf);
-        }
-
-        void prepare(uint32_t n = 4)
-        {
-            if (sizeof(buf) - remaining() < n) {
-                if (!write_all(fd, buf, remaining())) {
-                    err = errno;
-                }
-                pbuf = buf;
-            }
-        }
-
-        void finish()
-        {
-            if (!write_all(fd, buf, remaining())) {
-                err = errno;
-            }
-        }
-
-        void write_time()
-        {
-            prepare(21);
-            struct tm tm;
-            pbuf += strftime(pbuf, 20, "%Y-%m-%d %H:%M:%S", localtime_r(&time, &tm));
-            *pbuf = ' ';
-            ++pbuf;
-        }
-
-        void write_line(rvt::Screen const& screen, size_t y, size_t yend)
-        {
-            auto write_line_impl = [&](Line line){
-                for (auto const& ch : line) {
-                    if (ch.isRealCharacter) {
-                        if (REDEMPTION_UNLIKELY(ch.is_extended())) {
-                            for (auto ucs : screen.extendedCharTable()[ch.character]) {
-                                prepare();
-                                pbuf += rvt::unsafe_ucs4_to_utf8(ucs, pbuf);
-                            }
-                        }
-                        else {
-                            prepare();
-                            pbuf += rvt::unsafe_ucs4_to_utf8(ch.character, pbuf);
-                        }
-                    }
-                }
-            };
-
-            auto const&& lines = screen.getScreenLines();
-            auto const&& lineProperties = screen.getLineProperties();
-            constexpr auto wrapped = rvt::LineProperty::Wrapped;
-            while (y && bool(lineProperties[y-1] & wrapped)) {
-                --y;
-            }
-            while (y < yend) {
-                write_line_impl(lines[y]);
-                if (bool(lineProperties[y] & wrapped)) {
-                    while (++y < lines.size()) {
-                        write_line_impl(lines[y]);
-                        if (!bool(lineProperties[y] & wrapped)) {
-                            break;
-                        }
-                    }
-                }
-                ++y;
-
-                prepare(1);
-                *pbuf = '\n';
-                ++pbuf;
-            }
-        }
-    };
-
-    Out out{fd_out};
-    auto line_saver = [&out](rvt::Screen const& screen, size_t y, size_t yend){
-        out.write_line(screen, y, yend);
-    };
-    auto line_saver_with_datetime = [&out](rvt::Screen const& screen, size_t y, size_t yend){
-        out.write_time();
-        out.write_line(screen, y, yend);
-    };
-
-    try {
-        rvt::VtEmulator emu(20, 80,
-            (prefix_type == TerminalEmulatorTranscriptPrefix::datetime)
-            ? rvt::Screen::LineSaver(line_saver_with_datetime)
-            : rvt::Screen::LineSaver(line_saver));
-        rvt::Utf8Decoder decoder;
-        auto ucs_receiver = [&emu](rvt::ucs4_char ucs) { emu.receiveChar(ucs); };
-        while (!in.err && in.read(12)) {
-            auto arr = in.advance(12);
-            uint32_t const sec  = read_tty_u32(arr.data());
-            //uint32_t const usec = read_tty_u32(arr.data() + 4);
-            uint32_t frame_len  = read_tty_u32(arr.data() + 8);
-            out.time = sec /*+ (usec / 1000000)*/;
-
-            if (frame_len > in.remaining()) {
-                bool r;
-                do {
-                    frame_len -= in.remaining();
-                    decoder.decode(in.advance(in.remaining()), ucs_receiver);
-                } while ((r = in.reset_and_read()) && frame_len > in.remaining());
-                if (!r) {
-                    return in.err;
-                }
-            }
-            decoder.decode(in.advance(frame_len), ucs_receiver);
-
-            if (out.err) {
-                return out.err;
-            }
-        }
-        if (in.err) {
-            return in.err;
-        }
-        decoder.end_decode(ucs_receiver);
-    }
-    catch (...) {
+    struct stat s;
+    int status = fstat(fd_in, & s);
+    if (status == -1) {
         return errno_or_single_error();
     }
 
-    if (!out.err) {
-        out.finish();
+    auto data_len = static_cast<std::size_t>(s.st_size);
+
+    if (data_len == 0) {
+        TranscryptRender{buffer->as_rendering_buffer()}.finalize();
+        return 0;
     }
 
-    return out.err;
+    auto* data = static_cast<uint8_t*>(mmap(nullptr, data_len, PROT_READ, MAP_PRIVATE, fd_in, 0));
+    if (data == MAP_FAILED) {
+        return errno_or_single_error();
+    }
+
+    int res = terminal_emulator_buffer_prepare_transcript_from_ttyrec_buffer(
+        buffer, data, data_len, prefix_type
+    );
+    munmap(data, data_len);
+    return res;
 }
 
 } // extern "C"

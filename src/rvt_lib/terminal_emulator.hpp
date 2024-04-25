@@ -41,11 +41,6 @@ enum class TerminalEmulatorTranscriptPrefix : int {
     datetime,
 };
 
-enum class TerminalEmulatorCreateFileMode : int {
-    fail_if_exists,
-    force_create,
-};
-
 
 /// \return  0 if success ; -3 for bad_alloc ; -2 if bad argument (emu is null, bad format, bad size, etc) ; -1 if internal error with `errno` code to 0 (bad alloc, etc) ; > 0 is an `errno` code,
 //@{
@@ -143,31 +138,18 @@ int terminal_emulator_buffer_clear_data(TerminalEmulatorBuffer *) noexcept;
 //BEGIN read
 /// Construct a transcript buffer of session recorded by ttyrec.
 REDEMPTION_LIB_EXPORT
-int terminal_emulator_buffer_prepare_transcript_from_ttyrec(
+int terminal_emulator_buffer_prepare_transcript_from_ttyrec_buffer(
+    TerminalEmulatorBuffer * buffer,
+    uint8_t const * data, std::size_t data_len,
+    TerminalEmulatorTranscriptPrefix prefix_type) noexcept;
+
+/// Construct a transcript buffer of session recorded by ttyrec.
+REDEMPTION_LIB_EXPORT
+int terminal_emulator_buffer_prepare_transcript_from_ttyrec_file(
     TerminalEmulatorBuffer * buffer,
     char const * infile,
     TerminalEmulatorTranscriptPrefix prefix_type) noexcept;
 //END read
-
-//BEGIN write
-REDEMPTION_LIB_EXPORT
-int terminal_emulator_buffer_write(
-    TerminalEmulatorBuffer const * buffer, char const * filename,
-    int mode, TerminalEmulatorCreateFileMode create_mode) noexcept;
-
-REDEMPTION_LIB_EXPORT
-int terminal_emulator_buffer_write_integrity(
-    TerminalEmulatorBuffer const * buffer, char const * filename,
-    char const * prefix_tmp_filename, int mode) noexcept;
-
-/// Generate a transcript file of session recorded by ttyrec.
-/// \param outfile  output file when not null, otherwise stdout
-REDEMPTION_LIB_EXPORT
-int terminal_emulator_transcript_from_ttyrec(
-    char const * infile, char const * outfile, int mode,
-    TerminalEmulatorCreateFileMode create_mode,
-    TerminalEmulatorTranscriptPrefix prefix_type) noexcept;
-//END write
 
 //@}
 
